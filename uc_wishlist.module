@@ -114,13 +114,13 @@ function uc_wishlist_theme() {
   return array(
     'uc_wishlist_block_title' => array(
       'arguments' => array('wishlist_image' => NULL, 'uc_wishlist_path' => FALSE, 'arrow_up_image' => FALSE),
-    ),
+  ),
     'uc_wishlist_block_content' => array(
       'arguments' => array(),
-    ),
+  ),
     'uc_wishlist_view_form' => array(
       'arguments' => array('form' => NULL),
-    ),
+  ),
   );
 }
 
@@ -261,12 +261,17 @@ function uc_wishlist_user($op, &$edit, &$user, $category = NULL) {
  */
 function uc_wishlist_form_alter(&$form, &$form_state, $form_id) {
   if (strpos($form_id, 'uc_product_add_to_cart_form_') === 0) {
-    // Add the wish list button to the add to cart form.
-    $form['wishlist'] = array(
+
+    global $user;
+    //Checking if user has access to wish list
+    if (user_access('access wish lists', $user)) {
+      // Add the wish list button to the add to cart form.
+      $form['wishlist'] = array(
       '#type' => 'submit',
       '#value' => t('Add to wish list'),
       '#submit' => array('uc_wishlist_add_to_wishlist_submit'),
-    );
+      );
+    }
   }
 
   if ($form_id == 'uc_cart_checkout_form' && !isset($_SESSION['cart_order'])) {
@@ -745,8 +750,8 @@ function uc_wishlist_add_items_to_cart($form_values) {
     }
     foreach ($form_values->items as $item) {
       if ($item['qty']>0) {
-//TODO: add attribute information 'gift to user' that shows up on receipts
-// see uc_wishlist_cart_item
+        //TODO: add attribute information 'gift to user' that shows up on receipts
+        // see uc_wishlist_cart_item
         $data = unserialize($item['data']);
         uc_cart_add_item($item['nid'], $item['qty'], $data);
       }
