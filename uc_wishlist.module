@@ -791,4 +791,3 @@ function uc_wishlist_block_search_form_submit($form, &$form_state) {
     $form_state['redirect'] = 'wishlist/search/'. drupal_urlencode($form_state['values']['keywords']);
   }
 }
-
