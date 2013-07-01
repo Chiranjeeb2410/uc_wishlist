@@ -6,44 +6,43 @@
  * uc_wishlist_products tables.
  */
 
-
 /**
- * Implementation of hook_schema().
+ * Implements hook_schema().
  */
 function uc_wishlist_schema() {
   $schema = array();
 
   $schema['uc_wishlists'] = array(
-    'description' => t('Stores wishlist meta information related to users.'),
+    'description' => 'Stores wishlist meta information related to users.',
     'fields' => array(
       'wid' => array(
-        'description' => t('The wish list ID.'),
+        'description' => 'The wish list ID.',
         'type' => 'serial',
         'unsigned' => TRUE,
         'not null' => TRUE,
       ),
       'uid' => array(
-        'description' => t('The uid or session ID of the user creating the wish list.'),
+        'description' => 'The uid or session ID of the user creating the wish list.',
         'type' => 'varchar',
         'length' => 255,
         'not null' => TRUE,
         'default' => '',
       ),
       'title' => array(
-        'description' => t('The title of the wish list.'),
+        'description' => 'The title of the wish list.',
         'type' => 'varchar',
         'length' => 255,
         'not null' => TRUE,
         'default' => '',
       ),
       'expiration' => array(
-        'description' => t('Timestamp for when the wish list expires.'),
+        'description' => 'Timestamp for when the wish list expires.',
         'type' => 'int',
         'not null' => TRUE,
         'default' => 0,
       ),
       'address' => array(
-        'description' => t('Address for shipping items on the wish list.'),
+        'description' => 'Address for shipping items on the wish list.',
         'type' => 'text',
       ),
     ),
@@ -54,48 +53,48 @@ function uc_wishlist_schema() {
   );
 
   $schema['uc_wishlist_products'] = array(
-    'description' => t('Products assigned to a wish list.'),
+    'description' => 'Products assigned to a wish list.',
     'fields' => array(
       'wpid' => array(
-        'description' => t('The ID of the wish list product.'),
+        'description' => 'The ID of the wish list product.',
         'type' => 'serial',
         'unsigned' => TRUE,
         'not null' => TRUE,
       ),
       'wid' => array(
-        'description' => t('The {uc_wishlists}.wid for the wish list this product is assigned to.'),
+        'description' => 'The {uc_wishlists}.wid for the wish list this product is assigned to.',
         'type' => 'int',
         'unsigned' => TRUE,
         'not null' => TRUE,
         'default' => 0,
       ),
       'nid' => array(
-        'description' => t('The {node}.nid of the product.'),
+        'description' => 'The {node}.nid of the product.',
         'type' => 'int',
         'unsigned' => TRUE,
         'not null' => TRUE,
         'default' => 0,
       ),
       'qty' => array(
-        'description' => t('The quantity of this product on the wish list.'),
+        'description' => 'The quantity of this product on the wish list.',
         'type' => 'int',
         'unsigned' => TRUE,
         'not null' => TRUE,
         'default' => 0,
       ),
       'changed' => array(
-        'description' => t('The timestamp of the last change to this wish list product.'),
+        'description' => 'The timestamp of the last change to this wish list product.',
         'type' => 'int',
         'unsigned' => TRUE,
         'not null' => TRUE,
         'default' => TRUE,
       ),
       'data' => array(
-        'description' => t('The data array for the product.'),
+        'description' => 'The data array for the product.',
         'type' => 'text',
       ),
       'purchase' => array(
-        'description' => t('An array of purchase data for the product.'),
+        'description' => 'An array of purchase data for the product.',
         'type' => 'text',
       ),
     ),
@@ -106,38 +105,4 @@ function uc_wishlist_schema() {
   );
 
   return $schema;
-}
-
-/**
- * Implementation of hook_install().
- */
-function uc_wishlist_install() {
-  drupal_install_schema('uc_wishlist');
-}
-
-/**
- * Implementation of hook_uninstall().
- */
-function uc_wishlist_uninstall() {
-  drupal_uninstall_schema('uc_wishlist');
-}
-
-/**
- * Implementations of hook_update_N().
- */
-function uc_wishlist_update_6000() {
-  $ret = array();
-
-  // Change uc_wishlists.wid to a serial.
-  // Default auto_increment value to db_next_id('{uc_wishlists}_wid');
-  // Change uc_wishlists.uid to a varchar(255).
-  // Change uc_wishlists.title to a varchar(255).
-  // Change uc_wishlists.date to uc_wishlists.expiration.
-  // Add index for uid.
-
-  // Change uc_wishlist_products.wpid to a serial.
-  // Default auto_increment value to db_next_id('{uc_wishlist_products}_wpid');
-  // Add index for wid.
-
-  return $ret;
 }

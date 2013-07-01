@@ -5,7 +5,6 @@
  * Page callback and functions for wish lists.
  */
 
-
 /**
  * Display a wish list for viewing or altering.
  *
@@ -26,7 +25,7 @@ function uc_wishlist_display($wid = NULL, $mode = 'wid') {
     // $wid is actually a user account
     $wid = uc_wishlist_get_wid($wid->uid);
   }
-  else if (empty($wid)) {
+  elseif (empty($wid)) {
     // Default to the current user's wish list if no wishlist ID is specified.
     $wid = uc_wishlist_get_wid();
     $own = TRUE;
@@ -56,47 +55,51 @@ function uc_wishlist_display($wid = NULL, $mode = 'wid') {
     }
   }
 
-  drupal_set_title(check_plain($wishlist->title));
+  drupal_set_title($wishlist->title);
 
   // Add the settings form if the user is viewing his own wish list.
   if ($own) {
     if (!$user->uid) {
-      drupal_set_message(t('You must <a href="!login_url">login</a> or <a href="!register_url">register</a> to save your wish list.', array('!login_url' => url('user/login'), '!register_url' => url('user/register'))));
+      drupal_set_message(filter_xss(t('You must <a href="!login_url">login</a> or <a href="!register_url">register</a> to save your wish list.', array('!login_url' => url('user/login'), '!register_url' => url('user/register')))));
     }
 
     $collapsed = TRUE;
 
-    if (empty($wishlist->address->firstname) || empty($wishlist->address->lastname) || empty($wishlist->address->addr1) || empty($wishlist->address->city) || empty($wishlist->address->postcode)) {
+    if (variable_get('uc_wishlist_save_address', TRUE) && (empty($wishlist->address->firstname) || empty($wishlist->address->lastname) || empty($wishlist->address->addr1) || empty($wishlist->address->city) || empty($wishlist->address->postcode))) {
       $collapsed = FALSE;
     }
 
-    $output .= drupal_get_form('uc_wishlist_settings_form', $wishlist, $collapsed);
+    $form = drupal_get_form('uc_wishlist_settings_form', $wishlist, $collapsed);
+    $output .= drupal_render($form);
   }
 
   // Add expiration information to the display.
-  if ($wishlist->expiration < time()) {
-    $output .= '<p>'. t('This wish list may be no longer valid. It was for an event on @date.', array('@date' => date('F j, Y', $wishlist->expiration))) .'</p>';
+  if ($wishlist->expiration < REQUEST_TIME) {
+    $output .= '<p>' . t('This wish list may no longer be valid. It was for an event on @date.', array('@date' => date('F j, Y', $wishlist->expiration))) . '</p>';
   }
   elseif ($wishlist->expiration > 0) {
-    $output .= '<p>'. t('This wish list is valid until @date.', array('@date' => date('F j, Y', $wishlist->expiration))) .'</p>';
+    $output .= '<p>' . t('This wish list is valid until @date.', array('@date' => date('F j, Y', $wishlist->expiration))) . '</p>';
   }
 
   $items = uc_wishlist_get_contents($wid);
 
   if (empty($items)) {
-    return '<p>'. t('There are no products on this wish list.') .'</p>';
+    return '<p>' . t('There are no products on this wish list.') . '</p>';
   }
 
-  $output .= drupal_get_form('uc_wishlist_view_form', $items, $wid, $own);
+  $form = drupal_get_form('uc_wishlist_view_form', $items, $wid, $own);
+  $output .= drupal_render($form);
 
   return $output;
 }
 
-// Build the user wish list settings form.
-function uc_wishlist_settings_form($form_state, $wishlist, $collapsed = FALSE) {
+/**
+ * Builds the user wish list settings form.
+ */
+function uc_wishlist_settings_form($form, $form_state, $wishlist, $collapsed = FALSE) {
   global $user;
 
-  drupal_add_js(drupal_get_path('module', 'uc_wishlist') .'/uc_wishlist.js');
+  drupal_add_js(drupal_get_path('module', 'uc_wishlist') . '/uc_wishlist.js');
 
   $expiration = getdate($wishlist->expiration);
   $expiration['day'] = $expiration['mday'];
@@ -127,58 +130,67 @@ function uc_wishlist_settings_form($form_state, $wishlist, $collapsed = FALSE) {
     '#description' => t('If this wish list is associated with an event or will no longer be relevant on a specific date, enter it here.'),
   );
 
-  $form['wishlist']['address'] = array(
-    '#type' => 'fieldset',
-    '#title' => t('Mailing address'),
-    '#description' => t('The address you enter here will be available as a shipping address to anyone who purchases an item from your wish list.'),
-  );
-
-  if ($user->uid) {
-    $addresses = uc_select_address($user->uid, 'delivery', 'apply_address(\'delivery\', this.value);', t('Saved addresses'), TRUE);
-    if (!empty($addresses)) {
-      $form['wishlist']['address']['delivery_address_select'] = $addresses;
-      unset($form['wishlist']['address']['delivery_address_select']['#suffix']);
+  if (variable_get('uc_wishlist_save_address', TRUE)) {
+    $form['wishlist']['address'] = array(
+      '#type' => 'fieldset',
+      '#title' => t('Mailing address'),
+      '#description' => t('The address you enter here will be available as a shipping address to anyone who purchases an item from your wish list.'),
+    );
+  
+    if ($user->uid) {
+      $addresses = uc_select_address($user->uid, 'delivery', 'apply_address(\'delivery\', this.value);', t('Saved addresses'), TRUE);
+      if (!empty($addresses)) {
+        $form['wishlist']['address']['delivery_address_select'] = $addresses;
+        unset($form['wishlist']['address']['delivery_address_select']['#suffix']);
+      }
     }
-  }
-
-  if (uc_address_field_enabled('first_name')) {
-    $form['wishlist']['address']['delivery_first_name'] = uc_textfield(uc_get_field_name('first_name'), $wishlist->address->firstname, uc_address_field_required('first_name'));
-  }
-  if (uc_address_field_enabled('last_name')) {
-    $form['wishlist']['address']['delivery_last_name'] = uc_textfield(uc_get_field_name('last_name'), $wishlist->address->lastname, uc_address_field_required('last_name'));
-  }
-  if (uc_address_field_enabled('company')) {
-    $form['wishlist']['address']['delivery_company'] = uc_textfield(uc_get_field_name('company'), $wishlist->address->company, uc_address_field_required('company'), NULL, 64);
-  }
-  if (uc_address_field_enabled('street1')) {
-    $form['wishlist']['address']['delivery_street1'] = uc_textfield(uc_get_field_name('street1'), $wishlist->address->addr1, uc_address_field_required('street1'), NULL, 64);
-  }
-  if (uc_address_field_enabled('street2')) {
-    $form['wishlist']['address']['delivery_street2'] = uc_textfield(uc_get_field_name('street2'), $wishlist->address->addr2, uc_address_field_required('street2'), NULL, 64);
-  }
-  if (uc_address_field_enabled('city')) {
-    $form['wishlist']['address']['delivery_city'] = uc_textfield(uc_get_field_name('city'), $wishlist->address->city, uc_address_field_required('city'));
-  }
-  if (uc_address_field_enabled('country')) {
-    $form['wishlist']['address']['delivery_country'] = uc_country_select(uc_get_field_name('country'), $wishlist->address->country, NULL, 'name', uc_address_field_required('country'));
-  }
-  if (uc_address_field_enabled('zone')) {
-    if (isset($_POST['delivery_country'])) {
-      $country_id = intval($_POST['delivery_country']);
+  
+    if (uc_address_field_enabled('first_name')) {
+      $form['wishlist']['address']['delivery_first_name'] = uc_textfield(uc_get_field_name('first_name'), empty($wishlist->address->firstname) ? NULL : $wishlist->address->firstname, uc_address_field_required('first_name'));
     }
-    else {
-      $country_id = $wishlist->address->country;
+    if (uc_address_field_enabled('last_name')) {
+      $form['wishlist']['address']['delivery_last_name'] = uc_textfield(uc_get_field_name('last_name'), empty($wishlist->address->lastname) ? NULL : $wishlist->address->lastname, uc_address_field_required('last_name'));
     }
-    $form['wishlist']['address']['delivery_zone'] = uc_zone_select(uc_get_field_name('zone'), $wishlist->address->zone, NULL, $country_id, 'name', uc_address_field_required('zone'));
-    if (isset($_POST['panes']) && count($form['wishlist']['address']['delivery_zone']['#options']) == 1) {
-      $form['wishlist']['address']['delivery_zone']['#required'] = FALSE;
+    if (uc_address_field_enabled('company')) {
+      $form['wishlist']['address']['delivery_company'] = uc_textfield(uc_get_field_name('company'), empty($wishlist->address->company) ? NULL : $wishlist->address->company, uc_address_field_required('company'), NULL, 64);
     }
-  }
-  if (uc_address_field_enabled('postal_code')) {
-    $form['wishlist']['address']['delivery_postal_code'] = uc_textfield(uc_get_field_name('postal_code'), $wishlist->address->postcode, uc_address_field_required('postal_code'), NULL, 10, 10);
-  }
-  if (uc_address_field_enabled('phone')) {
-    $form['wishlist']['address']['delivery_phone'] = uc_textfield(uc_get_field_name('phone'), $wishlist->address->phone, uc_address_field_required('phone'), NULL, 32, 16);
+    if (uc_address_field_enabled('street1')) {
+      $form['wishlist']['address']['delivery_street1'] = uc_textfield(uc_get_field_name('street1'), empty($wishlist->address->addr1) ? NULL : $wishlist->address->addr1, uc_address_field_required('street1'), NULL, 64);
+    }
+    if (uc_address_field_enabled('street2')) {
+      $form['wishlist']['address']['delivery_street2'] = uc_textfield(uc_get_field_name('street2'), empty($wishlist->address->addr2) ? NULL : $wishlist->address->addr2, uc_address_field_required('street2'), NULL, 64);
+    }
+    if (uc_address_field_enabled('city')) {
+      $form['wishlist']['address']['delivery_city'] = uc_textfield(uc_get_field_name('city'), empty($wishlist->address->city) ? NULL : $wishlist->address->city, uc_address_field_required('city'));
+    }
+    if (uc_address_field_enabled('country')) {
+      $form['wishlist']['address']['delivery_country'] = array(
+        '#type' => 'select', 
+        '#title' => uc_get_field_name('country'), 
+        '#description' => NULL, 
+        '#required' => uc_address_field_required('country'), 
+        '#options' => uc_country_option_list(),
+        '#default_value' => isset($wishlist->address->country) ? $wishlist->address->country : uc_store_default_country(),
+      );
+    }
+    if (uc_address_field_enabled('zone')) {
+      if (isset($_POST['delivery_country'])) {
+        $country_id = intval(check_plain($_POST['delivery_country']));
+      }
+      else {
+        $country_id = isset($wishlist->address->country) ? $wishlist->address->country : uc_store_default_country();
+      }
+      $form['wishlist']['address']['delivery_zone'] = uc_zone_select(uc_get_field_name('zone'), empty($wishlist->address->zone) ? NULL : $wishlist->address->zone, $country_id, array('required' => uc_address_field_required('zone')));
+      if (isset($_POST['panes']) && count($form['wishlist']['address']['delivery_zone']['#options']) == 1) {
+        $form['wishlist']['address']['delivery_zone']['#required'] = FALSE;
+      }
+    }
+    if (uc_address_field_enabled('postal_code')) {
+      $form['wishlist']['address']['delivery_postal_code'] = uc_textfield(uc_get_field_name('postal_code'), empty($wishlist->address->postcode) ? NULL : $wishlist->address->postcode, uc_address_field_required('postal_code'), NULL, 10, 10);
+    }
+    if (uc_address_field_enabled('phone')) {
+      $form['wishlist']['address']['delivery_phone'] = uc_textfield(uc_get_field_name('phone'), empty($wishlist->address->phone) ? NULL : $wishlist->address->phone, uc_address_field_required('phone'), NULL, 32, 16);
+    }
   }
 
   $form['wishlist']['save'] = array(
@@ -189,6 +201,9 @@ function uc_wishlist_settings_form($form_state, $wishlist, $collapsed = FALSE) {
   return $form;
 }
 
+/**
+ * Validation handler for wish list settings form.
+ */
 function uc_wishlist_settings_form_validate($form, &$form_state) {
   global $user;
 
@@ -205,21 +220,29 @@ function uc_wishlist_settings_form_validate($form, &$form_state) {
   }
 }
 
+/**
+ * Submission handler for wish list settings form.
+ */
 function uc_wishlist_settings_form_submit($form, &$form_state) {
   $expiration = mktime(0, 0, 0, $form_state['values']['expiration']['month'], $form_state['values']['expiration']['day'], $form_state['values']['expiration']['year']);
 
-  $address = array(
-    'firstname' => $form_state['values']['delivery_first_name'],
-    'lastname' => $form_state['values']['delivery_last_name'],
-    'company' => $form_state['values']['delivery_company'],
-    'addr1' => $form_state['values']['delivery_street1'],
-    'addr2' => $form_state['values']['delivery_street2'],
-    'city' => $form_state['values']['delivery_city'],
-    'country' => $form_state['values']['delivery_country'],
-    'zone' => $form_state['values']['delivery_zone'],
-    'postcode' => $form_state['values']['delivery_postal_code'],
-    'phone' => $form_state['values']['delivery_phone'],
-  );
+  if (variable_get('uc_wishlist_save_address', TRUE)) {
+    $address = array(
+      'firstname' => $form_state['values']['delivery_first_name'],
+      'lastname' => $form_state['values']['delivery_last_name'],
+      'company' => empty($form_state['values']['delivery_company']) ? '' : $form_state['values']['delivery_company'],
+      'addr1' => $form_state['values']['delivery_street1'],
+      'addr2' => empty($form_state['values']['delivery_street2']) ? '' : $form_state['values']['delivery_street2'],
+      'city' => $form_state['values']['delivery_city'],
+      'country' => $form_state['values']['delivery_country'],
+      'zone' => $form_state['values']['delivery_zone'],
+      'postcode' => $form_state['values']['delivery_postal_code'],
+      'phone' => empty($form_state['values']['delivery_phone']) ? '' : $form_state['values']['delivery_phone'],
+    );
+  }
+  else {
+    $address = NULL;
+  }
 
   uc_wishlist_update_wishlist($form_state['values']['wid'], $form_state['values']['title'], $expiration, (object) $address);
 
@@ -229,7 +252,7 @@ function uc_wishlist_settings_form_submit($form, &$form_state) {
 /**
  * Display a page allowing the customer to view his/her wish list.
  */
-function uc_wishlist_view_form($form_state, $items, $wid, $own) {
+function uc_wishlist_view_form($form, $form_state, $items, $wid, $own) {
   $form = array();
 
   $form['items'] = array(
@@ -241,9 +264,18 @@ function uc_wishlist_view_form($form_state, $items, $wid, $own) {
     $node = node_load($item->nid);
     $element = array();
 
-    $element['nid'] = array('#type' => 'value', '#value' => $node->nid);
-    $element['wpid'] = array('#type' => 'value', '#value' => $item->wpid);
-    $element['module'] = array('#type' => 'value', '#value' => 'uc_product');
+    $element['nid'] = array(
+      '#type' => 'value',
+      '#value' => $node->nid,
+    );
+    $element['wpid'] = array(
+      '#type' => 'value',
+      '#value' => $item->wpid,
+    );
+    $element['module'] = array(
+      '#type' => 'value',
+      '#value' => 'uc_product',
+    );
 
     if ($own) {
       $element['remove'] = array('#type' => 'checkbox');
@@ -255,27 +287,31 @@ function uc_wishlist_view_form($form_state, $items, $wid, $own) {
     }
 
     $element['title'] = array(
-      '#value' => l(filter_xss($node->title, array()), 'node/'. $node->nid),
+      '#type' => 'item',
+      '#markup' => l(filter_xss($node->title, array()), 'node/' . $node->nid),
     );
 
-    $description = '';
-    foreach (module_implements('cart_item_description') as $module) {
-      $description .= module_invoke($module, 'cart_item_description', $item);
-    }
+    $description = uc_product_get_description($item);
     if ($description) {
-      $element['description'] = array('#value' => $description);
+      $element['description'] = array(
+        '#type' => 'item',
+        '#markup' => $description,
+      );
     }
 
     $element['#total'] = $item->price * $item->qty;
 
-    $element['data'] = array('#type' => 'hidden', '#value' => serialize($item->data));
+    $element['data'] = array(
+      '#type' => 'hidden',
+      '#value' => serialize($item->data),
+    );
 
     $element['wantqty'] = array(
       '#type' => 'textfield',
       '#default_value' => $item->qty,
       '#size' => 5,
       '#maxlength' => 6,
-      '#disabled' => $own ? FALSE : TRUE
+      '#disabled' => $own ? FALSE : TRUE,
     );
     if (!$own) {
       // Disabled elements do not pass their default value.
@@ -286,7 +322,7 @@ function uc_wishlist_view_form($form_state, $items, $wid, $own) {
       '#default_value' => $item->haveqty,
       '#size' => 5,
       '#maxlength' => 6,
-      '#disabled' => TRUE
+      '#disabled' => TRUE,
     );
     $element['qty'] = array(
       '#type' => 'textfield',
@@ -297,7 +333,7 @@ function uc_wishlist_view_form($form_state, $items, $wid, $own) {
 
     $element['addcart'] = array(
       '#type' => 'submit',
-      '#name' => 'addcart-'. $item->wpid,
+      '#name' => 'addcart-' . $item->wpid,
       '#value' => t('Add to cart'),
     );
 
@@ -323,12 +359,19 @@ function uc_wishlist_view_form($form_state, $items, $wid, $own) {
   return $form;
 }
 
-function theme_uc_wishlist_view_form($form) {
+/**
+ * Theme function for wish list display.
+ */
+function theme_uc_wishlist_view_form($variables) {
+  $form = $variables['form'];
   $rows = array();
 
   $own = isset($form['own']) ? TRUE : FALSE;
 
-  $header = array(t('Products'), '', t('Wanted'), t('Have'), t('Qty.'), t('Purchase'), array('data' => t('Total'), 'align' => 'right'));
+  $header = array(t('Products'), '', t('Wanted'), t('Have'), t('Qty.'), t('Purchase'), array(
+      'data' => t('Total'),
+      'align' => 'right',
+    ));
 
   if ($own) {
     array_unshift($header, t('Remove'));
@@ -336,31 +379,41 @@ function theme_uc_wishlist_view_form($form) {
 
   foreach (element_children($form['items']) as $i) {
     $nid = $form['items'][$i]['nid']['#value'];
-    $desc = drupal_render($form['items'][$i]['title']) .'<br />';
+    $desc = drupal_render($form['items'][$i]['title']) . '<br />';
     $desc .= drupal_render($form['items'][$i]['description']);
+    $img = uc_product_get_picture($nid, 'uc_cart');
 
     $row = array(
-      uc_product_get_picture($nid, 'cart'),
+      empty($img) ? '' : drupal_render($img),
       $desc,
       $form['items'][$i]['wantqty'] ? drupal_render($form['items'][$i]['wantqty']) : '',
       $form['items'][$i]['haveqty'] ? drupal_render($form['items'][$i]['haveqty']) : '',
       $form['items'][$i]['qty'] ? drupal_render($form['items'][$i]['qty']) : '',
       $form['items'][$i]['addcart'] ? drupal_render($form['items'][$i]['addcart']) : '',
-      array('data' => uc_currency_format($form['items'][$i]['#total']), 'nowrap' => 'nowrap'),
+      array(
+        'data' => uc_currency_format($form['items'][$i]['#total']),
+        'nowrap' => 'nowrap',
+      ),
     );
 
     if (isset($form['items'][$i]['remove'])) {
       array_unshift($row, drupal_render($form['items'][$i]['remove']));
     }
 
-    $rows[] = array('data' => $row, 'valign' => 'top');
+    $rows[] = array(
+      'data' => $row,
+      'valign' => 'top',
+    );
   }
 
-  $output = '<div id="wishlist-form-products">'. theme('table', $header, $rows) .'</div>';
+  $output = '<div id="wishlist-form-products">' . theme('table', array('header' => $header, 'rows' => $rows)) . '</div>';
 
-  return $output . drupal_render($form);
+  return $output . drupal_render_children($form);
 }
 
+/**
+ * Validation handler for wish list view form.
+ */
 function uc_wishlist_view_form_validate($form, &$form_state) {
   // Find wish list item associated with 'add to cart' submitted.
   foreach ($form_state['values'] as $key => $val) {
@@ -370,7 +423,7 @@ function uc_wishlist_view_form_validate($form, &$form_state) {
   }
 
   // If adding item to cart, check quantities.
-  if ($wpid) {
+  if (!empty($wpid)) {
     foreach ($form_state['values']['items'] as $key => $item) {
       if ($item['wpid'] == $wpid && $item['qty'] == 0) {
         $item['qty'] = 1;
@@ -382,6 +435,9 @@ function uc_wishlist_view_form_validate($form, &$form_state) {
   }
 }
 
+/**
+ * Submission handler for wish list view form.
+ */
 function uc_wishlist_view_form_submit($form, &$form_state) {
   if (isset($form_state['values']['op']) && !empty($form_state['values']['op'])) {
     if ($form_state['values']['op'] == $form_state['values']['update']) {
@@ -389,7 +445,7 @@ function uc_wishlist_view_form_submit($form, &$form_state) {
 
       drupal_set_message(t('Your wish list has been updated.'));
 
-      $form_state['redirect'] = 'wishlist/'. $form_state['values']['wid'];
+      $form_state['redirect'] = 'wishlist/' . $form_state['values']['wid'];
     }
   }
   else {
@@ -420,8 +476,10 @@ function uc_wishlist_view_form_submit($form, &$form_state) {
   }
 }
 
-// Display the wish list search form.
-function uc_wishlist_search_form($form_state, $keywords = '') {
+/**
+ * Display sthe wish list search form.
+ */
+function uc_wishlist_search_form($form, $form_state, $keywords = '') {
   global $user;
   $form = array();
 
@@ -435,7 +493,7 @@ function uc_wishlist_search_form($form_state, $keywords = '') {
   }
 
   $form['wishlist_link'] = array(
-    '#value' => '<div>'. l(t('Create or manage your wish list.'), $path, array('query' => $query)) .'</div>',
+    '#value' => '<div>' . l(t('Create or manage your wish list.'), $path, array('query' => $query)) . '</div>',
   );
 
   $form['search'] = array(
@@ -454,41 +512,64 @@ function uc_wishlist_search_form($form_state, $keywords = '') {
 
   if (!empty($keywords)) {
     // Check for user, wish list title, or address matches.
-    $result = pager_query("SELECT DISTINCT w.wid, w.title FROM {uc_wishlists} AS w JOIN {users} AS u ON w.uid = u.uid WHERE u.name LIKE '%%%s%%' OR w.title LIKE '%%%s%%' OR w.address LIKE '%%firstname%%%s%%addr1%%' ORDER BY w.title", 25, 0, NULL, $keywords, $keywords, $keywords);
+    $query = db_select('uc_wishlists', 'w');
+    $query->join('users', 'u', 'w.uid = u.uid');
+    $query->fields('w', array(
+      'wid',
+      'title',
+    ));
+    $query->distinct();
+    $query->condition(db_or()
+      ->condition('u.name', '%' . $keywords . '%', 'LIKE')
+      ->condition('w.title', '%' . $keywords . '%', 'LIKE')
+      ->condition('w.address', '%' . $keywords . '%', 'LIKE'));
   }
   else {
-    $result = pager_query("SELECT wid, title FROM {uc_wishlists} ORDER BY title", 25);
+    $query = db_select('uc_wishlists', 'w');
+    $query->fields('w', array(
+      'wid',
+      'title',
+    ));
   }
+  $result = $query->orderBy('w.title')->extend('PagerDefault')->limit(25)->execute();
 
   $links = array();
 
-  while ($wishlist = db_fetch_object($result)) {
+  foreach ($result as $wishlist) {
     $links[] = array(
       'title' => filter_xss($wishlist->title, array()),
-      'href' => 'wishlist/'. $wishlist->wid,
+      'href' => 'wishlist/' . $wishlist->wid,
     );
   }
 
   if (!empty($links)) {
-    $output = theme_links($links, array('class' => 'wishlist'));
+    $output = theme_links(array(
+      'links' => $links,
+      'attributes' => array(
+        'class' => array('wishlist'),
+      ),
+      'heading' => NULL,
+    ));
   }
   else {
-    $output = t('No wish lists found.');
+    $output = ' ' . t('No wish lists found.');
   }
 
   $form['output'] = array(
-    '#value' => '<div><h2>'. t('Wish lists:') .'</h2>'. $output .'</div>',
+    '#markup' => filter_xss('<div><h2>' . t('Wish lists:') . '</h2>' . $output . '</div>'),
   );
 
   return $form;
 }
 
+/**
+ * Submission handler for wish list search form.
+ */
 function uc_wishlist_search_form_submit($form, &$form_state) {
   if (empty($form_state['values']['keywords'])) {
     $form_state['redirect'] = 'wishlist/search';
   }
   else {
-    $form_state['redirect'] = 'wishlist/search/'. drupal_urlencode($form_state['values']['keywords']);
+    $form_state['redirect'] = 'wishlist/search/' . drupal_encode_path($form_state['values']['keywords']);
   }
 }
-
