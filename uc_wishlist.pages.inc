@@ -17,6 +17,81 @@ function uc_wishlist_display($wid = NULL, $mode = 'wid') {
   global $user;
   $output = '';
 
+  if (empty($wid)) {
+
+    // Default to the current user's wish list if no wishlist ID is specified.
+    $wid = uc_wishlist_get_wid();
+    $own = TRUE;
+  }
+  else {
+    // $wid is actually a user account
+    $wid = uc_wishlist_get_wid($wid->uid);
+  }
+
+  if (!$own && $wid == uc_wishlist_get_wid()) {
+    $own = TRUE;
+  }
+
+  // Attempt to load the wish list.
+  $wishlist = uc_wishlist_load($wid);
+
+  // Handle a non-existent wish list.
+  if (!$wishlist) {
+    // If the requested list was for the current user...
+    if ($own) {
+      // Display a message letting them know their list is empty.
+      drupal_set_title(t('Wish list'));
+      drupal_set_message(t("You have not added any products to your wish list. You can add any product from the store to your wish list by clicking the 'Add to wish list' button on the product's page."));
+
+      return t('There are no products on this wish list.');
+    }
+    else {
+      // Otherwise send them to the search form.
+      drupal_set_message(t('The wish list you requested could not be found.  Perhaps you can try looking for it through the wish list search form below.'));
+      drupal_goto('wishlist/search');
+    }
+  }
+
+  drupal_set_title($wishlist->title);
+
+  // Add the settings form if the user is viewing his own wish list.
+  if ($own) {
+    if (!$user->uid) {
+      drupal_set_message(filter_xss(t('You must <a href="!login_url">login</a> or <a href="!register_url">register</a> to save your wish list.', array('!login_url' => url('user/login'), '!register_url' => url('user/register')))));
+    }
+
+    $collapsed = TRUE;
+  }
+
+  // Add expiration information to the display.
+  if ($wishlist->expiration < REQUEST_TIME) {
+    $output .= '<p>' . t('This wish list may no longer be valid. It was for an event on @date.', array('@date' => date('F j, Y', $wishlist->expiration))) . '</p>';
+  }
+  elseif ($wishlist->expiration > 0) {
+    $output .= '<p>' . t('This wish list is valid until @date.', array('@date' => date('F j, Y', $wishlist->expiration))) . '</p>';
+  }
+
+  $items = uc_wishlist_get_contents($wid);
+
+  if (empty($items)) {
+    return '<p>' . t('There are no products on this wish list.') . '</p>';
+  }
+
+  $form = drupal_get_form('uc_wishlist_view_form', $items, $wid, $own);
+  $output .= drupal_render($form);
+
+  return $output;
+}
+
+/**
+ * Display a wishlist in user account page.
+ *
+ * We will display wish list address settings and wishlist expiry settings.
+ */
+function uc_wishlist_user_display($wid = NULL, $mode = 'wid') {
+  global $user;
+  $output = '';
+
   // $own defines whether the wish list is owned by the current user or not.
   // This affects how many parts of the page are rendered.
   $own = FALSE;
@@ -93,6 +168,8 @@ function uc_wishlist_display($wid = NULL, $mode = 'wid') {
   return $output;
 }
 
+
+
 /**
  * Builds the user wish list settings form.
  */
@@ -136,7 +213,7 @@ function uc_wishlist_settings_form($form, $form_state, $wishlist, $collapsed = F
       '#title' => t('Mailing address'),
       '#description' => t('The address you enter here will be available as a shipping address to anyone who purchases an item from your wish list.'),
     );
-  
+
     if ($user->uid) {
       $addresses = uc_select_address($user->uid, 'delivery', 'apply_address(\'delivery\', this.value);', t('Saved addresses'), TRUE);
       if (!empty($addresses)) {
@@ -144,7 +221,7 @@ function uc_wishlist_settings_form($form, $form_state, $wishlist, $collapsed = F
         unset($form['wishlist']['address']['delivery_address_select']['#suffix']);
       }
     }
-  
+
     if (uc_address_field_enabled('first_name')) {
       $form['wishlist']['address']['delivery_first_name'] = uc_textfield(uc_get_field_name('first_name'), empty($wishlist->address->firstname) ? NULL : $wishlist->address->firstname, uc_address_field_required('first_name'));
     }
@@ -371,7 +448,7 @@ function theme_uc_wishlist_view_form($variables) {
   $header = array(t('Products'), '', t('Wanted'), t('Have'), t('Qty.'), t('Purchase'), array(
       'data' => t('Total'),
       'align' => 'right',
-    ));
+  ));
 
   if ($own) {
     array_unshift($header, t('Remove'));
@@ -384,16 +461,16 @@ function theme_uc_wishlist_view_form($variables) {
     $img = uc_product_get_picture($nid, 'uc_cart');
 
     $row = array(
-      empty($img) ? '' : drupal_render($img),
-      $desc,
-      $form['items'][$i]['wantqty'] ? drupal_render($form['items'][$i]['wantqty']) : '',
-      $form['items'][$i]['haveqty'] ? drupal_render($form['items'][$i]['haveqty']) : '',
-      $form['items'][$i]['qty'] ? drupal_render($form['items'][$i]['qty']) : '',
-      $form['items'][$i]['addcart'] ? drupal_render($form['items'][$i]['addcart']) : '',
-      array(
+    empty($img) ? '' : drupal_render($img),
+    $desc,
+    $form['items'][$i]['wantqty'] ? drupal_render($form['items'][$i]['wantqty']) : '',
+    $form['items'][$i]['haveqty'] ? drupal_render($form['items'][$i]['haveqty']) : '',
+    $form['items'][$i]['qty'] ? drupal_render($form['items'][$i]['qty']) : '',
+    $form['items'][$i]['addcart'] ? drupal_render($form['items'][$i]['addcart']) : '',
+    array(
         'data' => uc_currency_format($form['items'][$i]['#total']),
         'nowrap' => 'nowrap',
-      ),
+    ),
     );
 
     if (isset($form['items'][$i]['remove'])) {
@@ -520,9 +597,9 @@ function uc_wishlist_search_form($form, $form_state, $keywords = '') {
     ));
     $query->distinct();
     $query->condition(db_or()
-      ->condition('u.name', '%' . $keywords . '%', 'LIKE')
-      ->condition('w.title', '%' . $keywords . '%', 'LIKE')
-      ->condition('w.address', '%' . $keywords . '%', 'LIKE'));
+    ->condition('u.name', '%' . $keywords . '%', 'LIKE')
+    ->condition('w.title', '%' . $keywords . '%', 'LIKE')
+    ->condition('w.address', '%' . $keywords . '%', 'LIKE'));
   }
   else {
     $query = db_select('uc_wishlists', 'w');
@@ -547,7 +624,7 @@ function uc_wishlist_search_form($form, $form_state, $keywords = '') {
       'links' => $links,
       'attributes' => array(
         'class' => array('wishlist'),
-      ),
+    ),
       'heading' => NULL,
     ));
   }

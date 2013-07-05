@@ -84,7 +84,7 @@ function uc_wishlist_menu() {
   $items['user/%user/wishlist'] = array(
     'title' => 'Wish list',
     'description' => 'View or modify the contents of your wish list.',
-    'page callback' => 'uc_wishlist_display',
+    'page callback' => 'uc_wishlist_user_display',
     'page arguments' => array(1, 'user'),
     'access arguments' => array('create wish lists'),
     'file' => 'uc_wishlist.pages.inc',
