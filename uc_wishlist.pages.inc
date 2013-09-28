@@ -242,10 +242,10 @@ function uc_wishlist_settings_form($form, $form_state, $wishlist, $collapsed = F
     }
     if (uc_address_field_enabled('country')) {
       $form['wishlist']['address']['delivery_country'] = array(
-        '#type' => 'select', 
-        '#title' => uc_get_field_name('country'), 
-        '#description' => NULL, 
-        '#required' => uc_address_field_required('country'), 
+        '#type' => 'select',
+        '#title' => uc_get_field_name('country'),
+        '#description' => NULL,
+        '#required' => uc_address_field_required('country'),
         '#options' => uc_country_option_list(),
         '#default_value' => isset($wishlist->address->country) ? $wishlist->address->country : uc_store_default_country(),
       );
@@ -633,6 +633,7 @@ function uc_wishlist_search_form($form, $form_state, $keywords = '') {
   }
 
   $form['output'] = array(
+    '#type' => 'item',
     '#markup' => filter_xss('<div><h2>' . t('Wish lists:') . '</h2>' . $output . '</div>'),
   );
 
