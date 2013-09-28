@@ -52,7 +52,7 @@ function uc_wishlist_display($wid = NULL, $mode = 'wid') {
     }
   }
 
-  drupal_set_title($wishlist->title);
+  drupal_set_title(check_plain($wishlist->title));
 
   // Add the settings form if the user is viewing his own wish list.
   if ($own) {
@@ -570,7 +570,8 @@ function uc_wishlist_search_form($form, $form_state, $keywords = '') {
   }
 
   $form['wishlist_link'] = array(
-    '#value' => '<div>' . l(t('Create or manage your wish list.'), $path, array('query' => $query)) . '</div>',
+    '#type' => 'item',
+    '#markup' => '<div>' . l(t('Create or manage your wish list.'), $path, array('query' => $query)) . '</div>',
   );
 
   $form['search'] = array(

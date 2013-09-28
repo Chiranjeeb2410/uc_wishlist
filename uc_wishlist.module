@@ -700,7 +700,7 @@ function uc_wishlist_add_item($nid, $qty = 1, $data = NULL, $wid = NULL, $msg = 
   }
 
   if (!in_array($node->type, array_keys(uc_product_node_info()))) {
-    drupal_set_message(t('!title is not a product. Unable to add to wish list.', array('!title' => $node->title)), 'error');
+    drupal_set_message(t('@title is not a product. Unable to add to wish list.', array('@title' => $node->title)), 'error');
     return;
   }
 
