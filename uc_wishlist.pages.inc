@@ -16,14 +16,14 @@
 function uc_wishlist_display($wid = NULL, $mode = 'wid') {
   global $user;
   $output = '';
+  $own = FALSE;
 
   if (empty($wid)) {
-
     // Default to the current user's wish list if no wishlist ID is specified.
     $wid = uc_wishlist_get_wid();
     $own = TRUE;
   }
-  else {
+  elseif (is_object($wid)) {
     // $wid is actually a user account
     $wid = uc_wishlist_get_wid($wid->uid);
   }
@@ -52,7 +52,7 @@ function uc_wishlist_display($wid = NULL, $mode = 'wid') {
     }
   }
 
-  drupal_set_title(check_plain($wishlist->title));
+  drupal_set_title($wishlist->title);
 
   // Add the settings form if the user is viewing his own wish list.
   if ($own) {
@@ -554,7 +554,7 @@ function uc_wishlist_view_form_submit($form, &$form_state) {
 }
 
 /**
- * Display sthe wish list search form.
+ * Display the wish list search form.
  */
 function uc_wishlist_search_form($form, $form_state, $keywords = '') {
   global $user;
@@ -651,4 +651,56 @@ function uc_wishlist_search_form_submit($form, &$form_state) {
   else {
     $form_state['redirect'] = 'wishlist/search/' . drupal_encode_path($form_state['values']['keywords']);
   }
+}
+
+
+/**
+ * Email form for wishlist
+ */
+function uc_wishlist_email_form() {
+
+  global $user;
+
+  //Getting wishlist of the user
+  $wid = uc_wishlist_get_wid();
+
+  $output = '<div>' . l('Wishlist', 'wishlist/' . $wid) . '</div>';
+
+  $form['reciepient'] = array(
+    '#type' => 'textfield',
+    '#title' => 'Reciepient',
+    '#required' => TRUE,
+    '#description' => 'Email address of the reciepient. You can add multiple emaill address as comma seperated.',
+  );
+
+  $form['sender'] = array(
+    '#type' => 'textfield',
+    '#title' => 'Sender',
+    '#default_value' => $user->mail,
+    '#description' => 'Mail address of the sender.',
+    '#attributes' => array('readonly' => 'readonly'),
+    '#required' => TRUE,
+  );
+
+  $form['wishlist_message'] = array(
+    '#type' => 'item',
+    '#markup' => $output,
+  );
+
+  $form['message'] = array(
+    '#type' => 'textarea',
+    '#title' => 'Message',
+    '#rows' => 6,
+    '#required' => TRUE,
+  );
+
+  $form['wid'] = array('#type' => 'hidden', '#value' => $wid);
+
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => 'Send',
+  );
+
+  return $form;
+
 }

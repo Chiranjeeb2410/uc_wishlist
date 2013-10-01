@@ -81,6 +81,15 @@ function uc_wishlist_menu() {
     'file' => 'uc_wishlist.pages.inc',
   );
 
+  $items['wishlist/mail'] = array(
+    'title' => 'Email wishlist',
+    'description' => 'Email wishlist to other user.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('uc_wishlist_email_form'),
+    'access arguments' => array('access wish lists'),
+    'file' => 'uc_wishlist.pages.inc',
+  );
+
   $items['user/%user/wishlist'] = array(
     'title' => 'Wish list',
     'description' => 'View or modify the contents of your wish list.',
@@ -884,5 +893,21 @@ function uc_wishlist_order_wishlist($order) {
   }
 
   return FALSE;
+}
+
+/**
+ * Implements hook_mail().
+ */
+
+function uc_wishlist_mail($key, &$message, $params) {
+  if (isset($params['subject'])) {
+    $message['subject'] = $params['subject'];
+  }
+  if (isset($params['body'])) {
+    $message['body'][] = $params['body'];
+  }
+  if (isset($params['headers']) && is_array($params['headers'])) {
+    $message['headers'] += $params['headers'];
+  }
 
 }
