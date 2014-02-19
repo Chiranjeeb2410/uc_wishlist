@@ -29,7 +29,12 @@ function uc_wishlist_admin_settings_form($form, &$form_state) {
     '#default_value' => variable_get('uc_wishlist_allow_anonymous', FALSE),
     '#description' => t('Check this box to allow anonymous users to create wish lists. If not checked, anonymous visitors will be prompted to login or register before creating a wish list.'),
   );
-
+  $form['uc_wishlist_default_from'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Specify a default <em>From</em> address'),
+    '#default_value' => variable_get('uc_wishlist_default_from', ''),
+    '#description' => t("If this field is set then all outgoing emails will have the From address set to the given value (normally something like no-reply@example.com). The <em>Reply To</em> address will be set to the users specified email address. This is recommended if you find your outgoing emails are being flagged as spam due to the sender address domain differing from the domain of the outgoing SMTP server."),
+  );
   // TODO: add uc_wishlist_default_length
 
   return system_settings_form($form);

@@ -11,11 +11,9 @@
  *
  * D7 port by Jerry Hudgins [http://www.laureldigital.com]
  */
-
-
-/*******************************************************************************
+/* * *****************************************************************************
  * Hook Functions (Drupal)
- ******************************************************************************/
+ * **************************************************************************** */
 
 /**
  * Implements hook_menu().
@@ -81,21 +79,22 @@ function uc_wishlist_menu() {
     'file' => 'uc_wishlist.pages.inc',
   );
 
-  $items['wishlist/mail'] = array(
-    'title' => 'Email wishlist',
-    'description' => 'Email wishlist to other user.',
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('uc_wishlist_email_form'),
-    'access arguments' => array('access wish lists'),
-    'file' => 'uc_wishlist.pages.inc',
-  );
-
   $items['user/%user/wishlist'] = array(
     'title' => 'Wish list',
     'description' => 'View or modify the contents of your wish list.',
     'page callback' => 'uc_wishlist_user_display',
     'page arguments' => array(1, 'user'),
     'access arguments' => array('create wish lists'),
+    'file' => 'uc_wishlist.pages.inc',
+    'type' => MENU_LOCAL_TASK,
+  );
+
+  $items['user/%user/wishlist-email'] = array(
+    'title' => 'Wishlist email',
+    'description' => 'Email wishlist to other user.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('uc_wishlist_email_form'),
+    'access arguments' => array('email wishlist'),
     'file' => 'uc_wishlist.pages.inc',
     'type' => MENU_LOCAL_TASK,
   );
@@ -111,15 +110,19 @@ function uc_wishlist_permission() {
     'administer wish lists' => array(
       'title' => t('Administer wish lists'),
       'description' => t('Allows editing or deletion of any wish list.'),
-  ),
+    ),
     'create wish lists' => array(
       'title' => t('Create wish lists'),
       'description' => t('Allow creation and editing of own wish list.'),
-  ),
+    ),
     'access wish lists' => array(
       'title' => t('Access wish lists'),
       'description' => t('Allow viewing of any wish list.'),
-  ),
+    ),
+    'email wishlist' => array(
+      'title' => t('Email Own wish list'),
+      'description' => t('Allow Email Own wish list'),
+    ),
   );
 }
 
@@ -137,13 +140,13 @@ function uc_wishlist_theme() {
   return array(
     'uc_wishlist_block_title' => array(
       'variables' => array('wishlist_image' => NULL, 'uc_wishlist_path' => FALSE, 'arrow_up_image' => FALSE),
-  ),
+    ),
     'uc_wishlist_block_content' => array(
       'variables' => array(),
-  ),
+    ),
     'uc_wishlist_view_form' => array(
       'render element' => 'form',
-  ),
+    ),
   );
 }
 
@@ -183,9 +186,9 @@ function uc_wishlist_search_execute($keys = NULL, $conditions = NULL) {
     'title',
   ));
   $query->condition(db_or()
-  ->condition('u.name', '%' . $keys . '%', 'LIKE')
-  ->condition('w.title', '%' . $keys . '%', 'LIKE')
-  ->condition('w.address', '%' . $keys . '%', 'LIKE'));
+          ->condition('u.name', '%' . $keys . '%', 'LIKE')
+          ->condition('w.title', '%' . $keys . '%', 'LIKE')
+          ->condition('w.address', '%' . $keys . '%', 'LIKE'));
   $result = $query->orderBy('w.title')->execute();
 
   foreach ($result as $wishlist) {
@@ -255,21 +258,21 @@ function uc_wishlist_user_login(&$edit, $account) {
       // it may update the old record but we expect it to insert
       // a new record
       db_delete('uc_wishlist_products')
-      ->condition('wpid', $obj->wpid)
-      ->execute();
+          ->condition('wpid', $obj->wpid)
+          ->execute();
       uc_wishlist_add_item($obj->nid, $obj->qty, unserialize($obj->data), $newwid);
     }
     db_delete('uc_wishlists')
-    ->condition('wid', $oldwid)
-    ->execute();
+        ->condition('wid', $oldwid)
+        ->execute();
   }
   elseif ($oldwid && !$newwid) {
     db_update('uc_wishlists')
-    ->fields(array(
-        'uid' => $account->uid,
-    ))
-    ->condition('wid', $oldwid)
-    ->execute();
+        ->fields(array(
+          'uid' => $account->uid,
+        ))
+        ->condition('wid', $oldwid)
+        ->execute();
   }
 }
 
@@ -343,10 +346,10 @@ function uc_wishlist_form_alter(&$form, &$form_state, $form_id) {
         $wishlist = uc_wishlist_load($wids[0]);
 
         if (variable_get('uc_wishlist_save_address', TRUE) &&
-        !empty($wishlist->address->firstname) && !empty($wishlist->address->lastname) &&
-        !empty($wishlist->address->addr1) && !empty($wishlist->address->postcode) &&
-        is_object($form['panes']['delivery']['address']['#default_value']) &&
-        empty($form['panes']['delivery']['address']['#default_value']->delivery_first_name)) {
+            !empty($wishlist->address->firstname) && !empty($wishlist->address->lastname) &&
+            !empty($wishlist->address->addr1) && !empty($wishlist->address->postcode) &&
+            is_object($form['panes']['delivery']['address']['#default_value']) &&
+            empty($form['panes']['delivery']['address']['#default_value']->delivery_first_name)) {
           $order = uc_order_load($_SESSION['cart_order']);
           if ($order) {
             $defaults = $order;
@@ -382,9 +385,9 @@ function uc_wishlist_add_to_wishlist_submit($form, &$form_state) {
   uc_wishlist_add_item($form_state['values']['nid'], $form_state['values']['qty'], module_invoke_all('uc_add_to_cart_data', $form_state['values']));
 }
 
-/*******************************************************************************
+/* * *****************************************************************************
  * Hook Functions (Ubercart)
- ******************************************************************************/
+ * **************************************************************************** */
 
 /**
  * Implements hook_uc_order().
@@ -421,10 +424,9 @@ function uc_wishlist_uc_order($op, $order, $arg2) {
   }
 }
 
-
-/*******************************************************************************
+/* * *****************************************************************************
  * Callback Functions, Forms, and Tables
- ******************************************************************************/
+ * **************************************************************************** */
 
 /**
  * Update information about a specific item in current wish list.
@@ -442,12 +444,12 @@ function uc_product_update_wishlist_item($nid, $data = array(), $qty, $wid = NUL
   }
   else {
     db_update('uc_wishlist_products')
-    ->fields(array(
-        'qty' => $qty,
-        'changed' => REQUEST_TIME,
-    ))
-    ->condition('wpid', $wpid)
-    ->execute();
+        ->fields(array(
+          'qty' => $qty,
+          'changed' => REQUEST_TIME,
+        ))
+        ->condition('wpid', $wpid)
+        ->execute();
   }
 
   if (strpos(request_uri(), 'wishlist', 1) !== FALSE) {
@@ -455,10 +457,9 @@ function uc_product_update_wishlist_item($nid, $data = array(), $qty, $wid = NUL
   }
 }
 
-
-/*******************************************************************************
+/* * *****************************************************************************
  * Module and Helper Functions
- ******************************************************************************/
+ * **************************************************************************** */
 
 /**
  * Get either an authenticated user's uid or an anonymous user's unique ID.
@@ -617,11 +618,11 @@ function uc_wishlist_get_product($wpid) {
 function uc_wishlist_update_purchase($witem) {
   if ($witem->wpid && is_array($witem->purchase)) {
     $rv = db_update('uc_wishlist_products')
-    ->fields(array(
-        'purchase' => serialize($witem->purchase),
-    ))
-    ->condition('wpid', $witem->wpid)
-    ->execute();
+        ->fields(array(
+          'purchase' => serialize($witem->purchase),
+        ))
+        ->condition('wpid', $witem->wpid)
+        ->execute();
   }
 }
 
@@ -652,12 +653,12 @@ function uc_wishlist_create_wishlist($title = NULL) {
   $expiration = REQUEST_TIME + variable_get('uc_wishlist_default_length', 2592000);
 
   $result = $id = db_insert('uc_wishlists')
-  ->fields(array(
-      'uid' => $uid,
-      'title' => $title,
-      'expiration' => $expiration,
-  ))
-  ->execute();
+      ->fields(array(
+        'uid' => $uid,
+        'title' => $title,
+        'expiration' => $expiration,
+      ))
+      ->execute();
 
   if ($result) {
     return $id;
@@ -674,13 +675,13 @@ function uc_wishlist_update_wishlist($wid, $title, $date, $address) {
   $addrstr = serialize($address);
 
   db_update('uc_wishlists')
-  ->fields(array(
-      'title' => $title,
-      'expiration' => $date,
-      'address' => $addrstr,
-  ))
-  ->condition('wid', $wid)
-  ->execute();
+      ->fields(array(
+        'title' => $title,
+        'expiration' => $date,
+        'address' => $addrstr,
+      ))
+      ->condition('wid', $wid)
+      ->execute();
 }
 
 /**
@@ -735,15 +736,15 @@ function uc_wishlist_add_item($nid, $qty = 1, $data = NULL, $wid = NULL, $msg = 
   // If the item isn't in the cart yet, add it.
   if (is_null($item) || $item === FALSE) {
     $id = db_insert('uc_wishlist_products')
-    ->fields(array(
-        'wid' => $wid,
-        'nid' => $nid,
-        'qty' => $qty,
-        'changed' => REQUEST_TIME,
-        'data' => serialize($data),
-        'purchase' => '',
-    ))
-    ->execute();
+        ->fields(array(
+          'wid' => $wid,
+          'nid' => $nid,
+          'qty' => $qty,
+          'changed' => REQUEST_TIME,
+          'data' => serialize($data),
+          'purchase' => '',
+        ))
+        ->execute();
     if ($msg) {
       drupal_set_message(t('<b>@product-title</b> added to <a href="!url">your wish list</a>.', array('@product-title' => filter_xss($node->title), '!url' => url('wishlist'))));
     }
@@ -775,8 +776,8 @@ function uc_wishlist_add_item($nid, $qty = 1, $data = NULL, $wid = NULL, $msg = 
  */
 function uc_wishlist_remove_item($wpid) {
   db_delete('uc_wishlist_products')
-  ->condition('wpid', $wpid)
-  ->execute();
+      ->condition('wpid', $wpid)
+      ->execute();
 }
 
 /**
@@ -830,11 +831,11 @@ function uc_wishlist_add_items_to_cart($form_values) {
  */
 function uc_wishlist_delete($wid) {
   db_delete('uc_wishlists')
-  ->condition('wid', $wid)
-  ->execute();
+      ->condition('wid', $wid)
+      ->execute();
   db_delete('uc_wishlist_products')
-  ->condition('wid', $wid)
-  ->execute();
+      ->condition('wid', $wid)
+      ->execute();
 }
 
 /**
@@ -869,7 +870,6 @@ function uc_wishlist_block_search_form_submit($form, &$form_state) {
   }
 }
 
-
 /**
  * Checking if order has wishlist product or not
  */
@@ -889,7 +889,6 @@ function uc_wishlist_order_wishlist($order) {
     if (!empty($item)) {
       return TRUE;
     }
-
   }
 
   return FALSE;
@@ -898,7 +897,6 @@ function uc_wishlist_order_wishlist($order) {
 /**
  * Implements hook_mail().
  */
-
 function uc_wishlist_mail($key, &$message, $params) {
   if (isset($params['subject'])) {
     $message['subject'] = $params['subject'];
@@ -909,5 +907,4 @@ function uc_wishlist_mail($key, &$message, $params) {
   if (isset($params['headers']) && is_array($params['headers'])) {
     $message['headers'] += $params['headers'];
   }
-
 }

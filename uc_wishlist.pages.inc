@@ -168,8 +168,6 @@ function uc_wishlist_user_display($wid = NULL, $mode = 'wid') {
   return $output;
 }
 
-
-
 /**
  * Builds the user wish list settings form.
  */
@@ -653,38 +651,25 @@ function uc_wishlist_search_form_submit($form, &$form_state) {
   }
 }
 
-
 /**
  * Email form for wishlist
  */
 function uc_wishlist_email_form() {
 
   global $user;
+  $wid = arg(1);
 
-  //Getting wishlist of the user
-  $wid = uc_wishlist_get_wid();
-
-  $output = '<div>' . l('Wishlist', 'wishlist/' . $wid) . '</div>';
-
-  $form['reciepient'] = array(
+  $form['subject'] = array(
     '#type' => 'textfield',
-    '#title' => 'Reciepient',
+    '#title' => 'Subject',
+    '#required' => TRUE,
+    '#description' => 'Enter the Email subject',
+  );
+  $form['recipients'] = array(
+    '#type' => 'textfield',
+    '#title' => 'Recipients',
     '#required' => TRUE,
     '#description' => 'Email address of the reciepient. You can add multiple emaill address as comma seperated.',
-  );
-
-  $form['sender'] = array(
-    '#type' => 'textfield',
-    '#title' => 'Sender',
-    '#default_value' => $user->mail,
-    '#description' => 'Mail address of the sender.',
-    '#attributes' => array('readonly' => 'readonly'),
-    '#required' => TRUE,
-  );
-
-  $form['wishlist_message'] = array(
-    '#type' => 'item',
-    '#markup' => $output,
   );
 
   $form['message'] = array(
@@ -692,15 +677,79 @@ function uc_wishlist_email_form() {
     '#title' => 'Message',
     '#rows' => 6,
     '#required' => TRUE,
+    '#description' => 'Enter the email message.',
   );
-
-  $form['wid'] = array('#type' => 'hidden', '#value' => $wid);
-
+  $form['wid'] = array(
+    '#type' => 'hidden',
+    '#value' => $wid,
+  );
   $form['submit'] = array(
     '#type' => 'submit',
     '#value' => 'Send',
   );
 
   return $form;
+}
+
+/**
+ * Validate function for the email wishlist.
+ * Checking if user enter the valid email address
+ * @param $form
+ * @param $form_state
+ */
+function uc_wishlist_email_form_validate($form, &$form_state) {
+
+  //Exploding the emails id of the recpients
+  $emails = explode(",", $form_state['values']['recipients']);
+  $emails = array_filter($emails);
+  foreach ($emails as $email) {
+    $email = trim($email);
+    if ($email != '' && !valid_email_address($email)) {
+      //Generating error
+      form_set_error('emails', t('%email is not a valid email address', array('%email' => $email)));
+    }
+  }
+}
+
+/**
+ * Submit callback for the wishlist
+ * Sending mail to recepient.
+ * @param $form
+ * @param $form_state
+ */
+
+function uc_wishlist_email_form_submit($form, &$form_state) {
+
+
+  //Exploding the emails id of the recpients
+  $emails = explode(",", $form_state['values']['recipients']);
+
+  $emails = array_filter($emails);
+  //Getting subject of the mail
+  $subject = $form_state['values']['subject'];
+  //Getting message of the mail
+  $message = $form_state['values']['message'];
+  $wid = $form_state['values']['wid'];
+  $message = $message . l('Wishlist', 'wishlist/' . $wid);
+
+  foreach ($emails as $email) {
+    uc_wishlist_send_mail($email, $subject, $message);
+  }
+}
+
+/*
+ * Wishlist: Sending mail function.
+ */
+
+function uc_wishlist_send_mail($to, $subject, $message) {
+
+  $from = variable_get('uc_wishlist_default_from', '');
+  $params = array(
+    'subject' => $subject,
+    'body' => $message,
+    'from' => $from,
+  );
+
+   drupal_mail('uc_wishlist',  'wishlist',  $to, language_default(),  $params, $from, TRUE);
 
 }
