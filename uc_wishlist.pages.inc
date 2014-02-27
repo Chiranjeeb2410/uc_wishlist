@@ -336,6 +336,7 @@ function uc_wishlist_view_form($form, $form_state, $items, $wid, $own) {
 
   // Load each wish list product and add it to the form array.
   foreach ($items as $item) {
+
     $node = node_load($item->nid);
     $element = array();
 
@@ -399,6 +400,7 @@ function uc_wishlist_view_form($form, $form_state, $items, $wid, $own) {
       '#maxlength' => 6,
       '#disabled' => TRUE,
     );
+
     $element['qty'] = array(
       '#type' => 'textfield',
       '#default_value' => $item->qty - $item->haveqty > 0 ? $item->qty - $item->haveqty : 1,
@@ -406,11 +408,46 @@ function uc_wishlist_view_form($form, $form_state, $items, $wid, $own) {
       '#maxlength' => 6,
     );
 
-    $element['addcart'] = array(
+    /**
+     * Checking if uc_stock module is install in the site and
+     * prevent user to add product into cart if the stock value of the product is equal to 0.
+     */
+
+    //Checking if uc_stock module install in the site.
+    if (module_exists('uc_stock')) {
+
+      /**
+       * Getting stock value of the particular product SKU.
+       * It will return FALSE, if there stock level is not active to product SKU.
+       */
+      $stock = uc_stock_level($node->model);
+
+      if ($stock) {
+
+        $element['addcart'] = array(
+          '#type' => 'submit',
+          '#name' => 'addcart-' . $item->wpid,
+          '#value' => t('Add to cart'),
+        );
+
+      }
+      else {
+        $element['addcart'] = array(
+          '#type' => 'item',
+          '#name' => 'addcart-' . $item->wpid,
+          '#markup' => t('Out Of Stock'),
+        );
+      }
+    }
+    else {
+
+      $element['addcart'] = array(
       '#type' => 'submit',
       '#name' => 'addcart-' . $item->wpid,
       '#value' => t('Add to cart'),
-    );
+      );
+
+    }
 
     $form['items'][] = $element;
   }
@@ -750,6 +787,6 @@ function uc_wishlist_send_mail($to, $subject, $message) {
     'from' => $from,
   );
 
-   drupal_mail('uc_wishlist',  'wishlist',  $to, language_default(),  $params, $from, TRUE);
+  drupal_mail('uc_wishlist',  'wishlist',  $to, language_default(),  $params, $from, TRUE);
 
 }
