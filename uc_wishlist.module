@@ -316,8 +316,13 @@ function uc_wishlist_user_cancel($edit, $account, $method) {
  * of a wish list's owner, if items come from a single wish list.
  */
 function uc_wishlist_form_alter(&$form, &$form_state, $form_id) {
+
+  /**
+   * If user has access to create wishlist, allow him to add product into wishlist.
+   */
+
   if (user_access('create wish lists')) {
-    if (strpos($form_id, 'uc_product_add_to_cart_form_') === 0) {
+    if ((strpos($form_id, 'uc_product_add_to_cart_form_') === 0) || (strpos($form_id, 'uc_product_kit_add_to_cart_form_') === 0)) {
       // Add the wish list button to the add to cart form.
       $form['actions']['wishlist'] = array(
         '#type' => 'submit',
@@ -328,6 +333,9 @@ function uc_wishlist_form_alter(&$form, &$form_state, $form_id) {
       );
     }
 
+    /**
+     * Checking if the product is added from wishlist in checkout page.
+     */
     if ($form_id == 'uc_cart_checkout_form') {
       $items = $form['panes']['cart']['cart_review_table']['#items'];
       $wids = array();
@@ -381,6 +389,7 @@ function uc_wishlist_form_alter(&$form, &$form_state, $form_id) {
  * and 'add to wish list' functions.
  */
 function uc_wishlist_add_to_wishlist_submit($form, &$form_state) {
+
   // Add the item to the user's wish list.
   uc_wishlist_add_item($form_state['values']['nid'], $form_state['values']['qty'], module_invoke_all('uc_add_to_cart_data', $form_state['values']));
 }
@@ -696,6 +705,7 @@ function uc_wishlist_add_item($nid, $qty = 1, $data = NULL, $wid = NULL, $msg = 
 
   if (!$wid || $wid === NULL) {
     $wid = uc_wishlist_create_wishlist();
+
     if (!$wid) {
       drupal_set_message(t('Could not create wish list. Adding item failed.'), 'error');
       return FALSE;
@@ -705,6 +715,7 @@ function uc_wishlist_add_item($nid, $qty = 1, $data = NULL, $wid = NULL, $msg = 
 
   $node = node_load($nid);
 
+  //Adding data variables
   if (empty($data)) {
     $data = array('module' => 'uc_product');
   }
@@ -712,7 +723,51 @@ function uc_wishlist_add_item($nid, $qty = 1, $data = NULL, $wid = NULL, $msg = 
     $data['module'] = 'uc_product';
   }
 
-  if (!in_array($node->type, array_keys(uc_product_node_info()))) {
+  /**
+   * If Product Kit is enable, then add products into data array
+   */
+
+  if (module_exists('uc_product_kit') && $node->type == 'product_kit') {
+
+    //Adding products of the product kit into data object
+    $products = $node->products;
+
+    foreach ($products as $pid => $product) {
+
+      $data['products'][$pid]['nid'] = $pid;
+      $data['products'][$pid]['qty'] = $product->qty;
+
+      //Creating attributes array
+      $attributes = array();
+
+      //Getting attributes list of the product
+      $product_attributes = $product->attributes;
+
+      //Iterating through the attributes list
+      foreach ($product_attributes as $aid => $product_attribute) {
+        $attribute[$product_attribute->aid] = $product_attribute->default_option;
+      }
+
+      //Assigning attributes to data array
+      $data['products'][$pid]['attributes'] = $attributes;
+    }
+  }
+
+  /**
+   * If product kit module is install in the site, then we need to check if the product is product kit or product.
+   */
+  if (module_exists('uc_product_kit')) {
+    $supported_node_types = array_merge(array_keys(uc_product_node_info()), array_keys(uc_product_kit_node_info()));
+  }
+  else {
+    $supported_node_types = array_keys(uc_product_node_info());
+  }
+
+  /**
+   * Checking if the node is product type or product kit type.
+   */
+
+  if (!in_array($node->type, $supported_node_types)) {
     drupal_set_message(t('@title is not a product. Unable to add to wish list.', array('@title' => $node->title)), 'error');
     return;
   }
@@ -811,6 +866,7 @@ function uc_wishlist_update_item_object($wform) {
  * Adds wishlist items to the shopping cart.
  */
 function uc_wishlist_add_items_to_cart($form_values) {
+
   if (is_object($form_values)) {
     if ($form_values->wid) {
       $wid = $form_values->wid;
@@ -820,6 +876,7 @@ function uc_wishlist_add_items_to_cart($form_values) {
     }
     foreach ($form_values->items as $item) {
       if ($item['qty'] > 0) {
+
         //TODO: add attribute information 'gift to user' that shows up on receipts
         // see uc_wishlist_cart_item
         $data = unserialize($item['data']);

@@ -417,10 +417,40 @@ function uc_wishlist_view_form($form, $form_state, $items, $wid, $own) {
     if (module_exists('uc_stock')) {
 
       /**
-       * Getting stock value of the particular product SKU.
-       * It will return FALSE, if there stock level is not active to product SKU.
+       * If product kit module is installed in the site and wishlist node type is product kit.
        */
-      $stock = uc_stock_level($node->model);
+      if (module_exists('uc_product_kit') && $node->type == 'product_kit') {
+
+        /**
+         * Getting the number of products attached with the Product Kit.
+         * As there is no stock configuration, so we will check the stock value of the each product of Product Kit.
+         *
+         * If all products of the Product Kit has stock active, then we allow user to purchase product kit.
+         * @var unknown_type
+         */
+
+        $products = $node->products;
+
+        $stock = TRUE;
+
+        //Looping through each product.
+        foreach ($products as $product) {
+
+          //Checking stock level of the product
+          if (!uc_stock_level($product->model)) {
+            $stock = FALSE;
+          }
+        }
+
+      }
+      else {
+
+        /**
+         * Getting stock value of the particular product SKU.
+         * It will return FALSE, if there stock level is not active to product SKU.
+         */
+        $stock = uc_stock_level($node->model);
+      }
 
       if ($stock) {
 
@@ -553,6 +583,7 @@ function uc_wishlist_view_form_validate($form, &$form_state) {
 function uc_wishlist_view_form_submit($form, &$form_state) {
   if (isset($form_state['values']['op']) && !empty($form_state['values']['op'])) {
     if ($form_state['values']['op'] == $form_state['values']['update']) {
+
       uc_wishlist_update_item_object((object) $form_state['values']);
 
       drupal_set_message(t('Your wish list has been updated.'));
