@@ -29,18 +29,6 @@ function uc_wishlist_admin_settings_form($form, &$form_state) {
     '#default_value' => variable_get('uc_wishlist_allow_anonymous', FALSE),
     '#description' => t('Check this box to allow anonymous users to create wish lists. If not checked, anonymous visitors will be prompted to login or register before creating a wish list.'),
   );
-  $form['uc_wishlist_default_private'] = array(
-    '#type' => 'checkbox',
-    '#title' => t('Make users wishlist private by default.'),
-    '#default_value' => variable_get('uc_wishlist_default_private', FALSE),
-    '#description' => t('This makes the users wish list private by default and exclude it from wish list search results.This will not give the option to users to set the privacy of their wishlists.'),
-  );
-  $form['uc_wishlist_allow_private'] = array(
-    '#type' => 'checkbox',
-    '#title' => t('Allow users to make their wishlist private.'),
-    '#default_value' => variable_get('uc_wishlist_allow_private', FALSE),
-    '#description' => t('Check this box to allow users to make their wish list private and exclude it from wish list search results.This option will disable when <em>Make users wishlist private by default.</em> is enabled.'),
-  );
   $form['uc_wishlist_default_from'] = array(
     '#type' => 'textfield',
     '#title' => t('Specify a default <em>From</em> address'),

@@ -45,12 +45,6 @@ function uc_wishlist_schema() {
         'description' => 'Address for shipping items on the wish list.',
         'type' => 'text',
       ),
-      'private' => array(
-        'description' => 'Private',
-        'type' => 'int',
-        'not null' => TRUE,
-        'default' => 0,
-      ),
     ),
     'indexes' => array(
       'uid' => array('uid'),
@@ -111,16 +105,4 @@ function uc_wishlist_schema() {
   );
 
   return $schema;
-}
-
-function uc_wishlist_update_7000() {
-  if (!db_field_exists('uc_wishlists', 'private')) {
-    // Create a private column.
-    db_add_field('uc_wishlists', 'private', array(
-      'type' => 'int',
-      'not null' => TRUE,
-      'default' => 0,
-      'description' => 'Private',
-    ));
-  }
 }
