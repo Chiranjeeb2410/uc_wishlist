@@ -51,35 +51,39 @@ function uc_wishlist_display($wid = NULL, $mode = 'wid') {
       drupal_goto('wishlist/search');
     }
   }
+  // Display only if it's my own or it's not private.
+  if (!$wishlist->private || $own) {
+    drupal_set_title($wishlist->title);
 
-  drupal_set_title($wishlist->title);
+    // Add the settings form if the user is viewing his own wish list.
+    if ($own) {
+      if (!$user->uid) {
+        drupal_set_message(filter_xss(t('You must <a href="!login_url">login</a> or <a href="!register_url">register</a> to save your wish list.', array('!login_url' => url('user/login'), '!register_url' => url('user/register')))));
+      }
 
-  // Add the settings form if the user is viewing his own wish list.
-  if ($own) {
-    if (!$user->uid) {
-      drupal_set_message(filter_xss(t('You must <a href="!login_url">login</a> or <a href="!register_url">register</a> to save your wish list.', array('!login_url' => url('user/login'), '!register_url' => url('user/register')))));
+      $collapsed = TRUE;
     }
 
-    $collapsed = TRUE;
+    // Add expiration information to the display.
+    if ($wishlist->expiration < REQUEST_TIME) {
+      $output .= '<p>' . t('This wish list may no longer be valid. It was for an event on @date.', array('@date' => date('F j, Y', $wishlist->expiration))) . '</p>';
+    }
+    elseif ($wishlist->expiration > 0) {
+      $output .= '<p>' . t('This wish list is valid until @date.', array('@date' => date('F j, Y', $wishlist->expiration))) . '</p>';
+    }
+
+    $items = uc_wishlist_get_contents($wid);
+
+    if (empty($items)) {
+      return '<p>' . t('There are no products on this wish list.') . '</p>';
+    }
+
+    $form = drupal_get_form('uc_wishlist_view_form', $items, $wid, $own);
+    $output .= drupal_render($form);
   }
-
-  // Add expiration information to the display.
-  if ($wishlist->expiration < REQUEST_TIME) {
-    $output .= '<p>' . t('This wish list may no longer be valid. It was for an event on @date.', array('@date' => date('F j, Y', $wishlist->expiration))) . '</p>';
+  else {
+    drupal_goto('wishlist/search');
   }
-  elseif ($wishlist->expiration > 0) {
-    $output .= '<p>' . t('This wish list is valid until @date.', array('@date' => date('F j, Y', $wishlist->expiration))) . '</p>';
-  }
-
-  $items = uc_wishlist_get_contents($wid);
-
-  if (empty($items)) {
-    return '<p>' . t('There are no products on this wish list.') . '</p>';
-  }
-
-  $form = drupal_get_form('uc_wishlist_view_form', $items, $wid, $own);
-  $output .= drupal_render($form);
-
   return $output;
 }
 
@@ -147,24 +151,25 @@ function uc_wishlist_user_display($wid = NULL, $mode = 'wid') {
     $form = drupal_get_form('uc_wishlist_settings_form', $wishlist, $collapsed);
     $output .= drupal_render($form);
   }
+  // Display only if it's my own or it's not private.
+  if (!$wishlist->private || $own) {
+    // Add expiration information to the display.
+    if ($wishlist->expiration < REQUEST_TIME) {
+      $output .= '<p>' . t('This wish list may no longer be valid. It was for an event on @date.', array('@date' => date('F j, Y', $wishlist->expiration))) . '</p>';
+    }
+    elseif ($wishlist->expiration > 0) {
+      $output .= '<p>' . t('This wish list is valid until @date.', array('@date' => date('F j, Y', $wishlist->expiration))) . '</p>';
+    }
 
-  // Add expiration information to the display.
-  if ($wishlist->expiration < REQUEST_TIME) {
-    $output .= '<p>' . t('This wish list may no longer be valid. It was for an event on @date.', array('@date' => date('F j, Y', $wishlist->expiration))) . '</p>';
+    $items = uc_wishlist_get_contents($wid);
+
+    if (empty($items)) {
+      return '<p>' . t('There are no products on this wish list.') . '</p>';
+    }
+
+    $form = drupal_get_form('uc_wishlist_view_form', $items, $wid, $own);
+    $output .= drupal_render($form);
   }
-  elseif ($wishlist->expiration > 0) {
-    $output .= '<p>' . t('This wish list is valid until @date.', array('@date' => date('F j, Y', $wishlist->expiration))) . '</p>';
-  }
-
-  $items = uc_wishlist_get_contents($wid);
-
-  if (empty($items)) {
-    return '<p>' . t('There are no products on this wish list.') . '</p>';
-  }
-
-  $form = drupal_get_form('uc_wishlist_view_form', $items, $wid, $own);
-  $output .= drupal_render($form);
-
   return $output;
 }
 
@@ -204,6 +209,15 @@ function uc_wishlist_settings_form($form, $form_state, $wishlist, $collapsed = F
     '#default_value' => $expiration,
     '#description' => t('If this wish list is associated with an event or will no longer be relevant on a specific date, enter it here.'),
   );
+
+  if (!variable_get('uc_wishlist_default_private', TRUE) && variable_get('uc_wishlist_allow_private', TRUE)) {
+    $form['wishlist']['private'] = array(
+      '#type' => 'checkbox',
+      '#title' => t('Private'),
+      '#default_value' => $wishlist->private,
+      '#description' => t('Check this to make your wish list private and exclude it from wish list search results.'),
+    );
+  }
 
   if (variable_get('uc_wishlist_save_address', TRUE)) {
     $form['wishlist']['address'] = array(
@@ -318,7 +332,9 @@ function uc_wishlist_settings_form_submit($form, &$form_state) {
   else {
     $address = NULL;
   }
-  uc_wishlist_update_wishlist($form_state['values']['wid'], $form_state['values']['title'], $expiration, (object) $address);
+  $private = variable_get('uc_wishlist_default_private', FALSE) ? variable_get('uc_wishlist_default_private', FALSE) : 0;
+  $private = variable_get('uc_wishlist_allow_private', FALSE) ? $form_state['values']['private'] : $private;
+  uc_wishlist_update_wishlist($form_state['values']['wid'], $form_state['values']['title'], $expiration, (object) $address, $private);
   drupal_set_message(t('Your wish list has been updated.'));
 }
 
@@ -579,6 +595,9 @@ function uc_wishlist_view_form_validate($form, &$form_state) {
  * Submission handler for wish list view form.
  */
 function uc_wishlist_view_form_submit($form, &$form_state) {
+
+  global $user;
+
   if (isset($form_state['values']['op']) && !empty($form_state['values']['op'])) {
     if ($form_state['values']['op'] == $form_state['values']['update']) {
 
@@ -586,7 +605,7 @@ function uc_wishlist_view_form_submit($form, &$form_state) {
 
       drupal_set_message(t('Your wish list has been updated.'));
 
-      $form_state['redirect'] = 'wishlist/' . $form_state['values']['wid'];
+      $form_state['redirect'] = 'user/'.$user->uid.'/wishlist';
     }
   }
   else {
@@ -673,6 +692,7 @@ function uc_wishlist_search_form($form, $form_state, $keywords = '') {
       'title',
     ));
   }
+  $query->condition('w.private', 0, '=');
   $result = $query->orderBy('w.title')->extend('PagerDefault')->limit(25)->execute();
 
   $links = array();

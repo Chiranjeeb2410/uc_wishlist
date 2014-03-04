@@ -664,11 +664,14 @@ function uc_wishlist_create_wishlist($title = NULL) {
 
   $expiration = REQUEST_TIME + variable_get('uc_wishlist_default_length', 2592000);
 
+  $private = variable_get('uc_wishlist_default_private', FALSE) ? variable_get('uc_wishlist_default_private', FALSE) : 0;
+
   $result = $id = db_insert('uc_wishlists')
   ->fields(array(
         'uid' => $uid,
         'title' => $title,
         'expiration' => $expiration,
+        'private' => $private,
   ))
   ->execute();
 
@@ -682,7 +685,7 @@ function uc_wishlist_create_wishlist($title = NULL) {
 /**
  * Updates wish list settings.
  */
-function uc_wishlist_update_wishlist($wid, $title, $date, $address) {
+function uc_wishlist_update_wishlist($wid, $title, $date, $address, $private) {
   // TODO: Combine with uc_wishlist_create_wishlist?
   $addrstr = serialize($address);
 
@@ -691,6 +694,7 @@ function uc_wishlist_update_wishlist($wid, $title, $date, $address) {
         'title' => $title,
         'expiration' => $date,
         'address' => $addrstr,
+        'private' => $private,
   ))
   ->condition('wid', $wid)
   ->execute();
