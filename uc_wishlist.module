@@ -321,7 +321,7 @@ function uc_wishlist_form_alter(&$form, &$form_state, $form_id) {
    * If user has access to create wishlist, allow him to add product into wishlist.
    */
 
-  if (user_access('create wish lists')) {
+  if (user_access('create wish lists') && variable_get('uc_wishlist_out_of_stock', FALSE)) {
     if ((strpos($form_id, 'uc_product_add_to_cart_form_') === 0) || (strpos($form_id, 'uc_product_kit_add_to_cart_form_') === 0)) {
       // Add the wish list button to the add to cart form.
       $form['actions']['wishlist'] = array(

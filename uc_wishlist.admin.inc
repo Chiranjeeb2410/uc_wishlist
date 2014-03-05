@@ -41,6 +41,15 @@ function uc_wishlist_admin_settings_form($form, &$form_state) {
     '#default_value' => variable_get('uc_wishlist_allow_private', FALSE),
     '#description' => t('Check this box to allow users to make their wish list private and exclude it from wish list search results.This option will disable when <em>Make users wishlist private by default.</em> is enabled.'),
   );
+
+  //Allow admin to configure out of stock.
+  $form['uc_wishlist_out_of_stock'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Allow users to add out of stock item into wishlist.'),
+    '#default_value' => variable_get('uc_wishlist_out_of_stock', FALSE),
+    '#description' => t('Check this box to allow user to add product to their wishlist if product is out of stock.'),
+  );
+
   $form['uc_wishlist_default_from'] = array(
     '#type' => 'textfield',
     '#title' => t('Specify a default <em>From</em> address'),
