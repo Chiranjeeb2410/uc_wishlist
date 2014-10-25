@@ -316,7 +316,6 @@ function uc_wishlist_user_cancel($edit, $account, $method) {
  * of a wish list's owner, if items come from a single wish list.
  */
 function uc_wishlist_form_alter(&$form, &$form_state, $form_id) {
-
   /**
    * If user has access to create wishlist, allow him to add product into wishlist.
    */
@@ -337,43 +336,45 @@ function uc_wishlist_form_alter(&$form, &$form_state, $form_id) {
      * Checking if the product is added from wishlist in checkout page.
      */
     if ($form_id == 'uc_cart_checkout_form') {
-      $items = $form['panes']['cart']['cart_review_table']['#items'];
-      $wids = array();
+      if (isset($form['panes']['cart']['cart_review_table']['#items']) && !empty($form['panes']['cart']['cart_review_table']['#items'])) {
+        $items = $form['panes']['cart']['cart_review_table']['#items'];
+        $wids = array();
 
-      foreach ($items as $item) {
-        if (!empty($item->data['wid'])) {
-          $wids[] = $item->data['wid'];
+        foreach ($items as $item) {
+          if (!empty($item->data['wid'])) {
+            $wids[] = $item->data['wid'];
+          }
         }
-      }
-      $wids = array_unique($wids);
+        $wids = array_unique($wids);
 
-      if (count($wids) > 1) {
-        drupal_set_message(t('This order contains items from multiple wish lists. It is not possible to automatically address this order for its recipient.'));
-      }
-      elseif (count($wids) == 1) {
-        $wishlist = uc_wishlist_load($wids[0]);
+        if (count($wids) > 1) {
+          drupal_set_message(t('This order contains items from multiple wish lists. It is not possible to automatically address this order for its recipient.'));
+        }
+        elseif (count($wids) == 1) {
+          $wishlist = uc_wishlist_load($wids[0]);
 
-        if (variable_get('uc_wishlist_save_address', TRUE) &&
-        !empty($wishlist->address->firstname) && !empty($wishlist->address->lastname) &&
-        !empty($wishlist->address->addr1) && !empty($wishlist->address->postcode) &&
-        is_object($form['panes']['delivery']['address']['#default_value']) &&
-        empty($form['panes']['delivery']['address']['#default_value']->delivery_first_name)) {
-          $order = uc_order_load($_SESSION['cart_order']);
-          if ($order) {
-            $defaults = $order;
-            $defaults->delivery_first_name = $wishlist->address->firstname;
-            $defaults->delivery_last_name = $wishlist->address->lastname;
-            $defaults->delivery_company = $wishlist->address->company;
-            $defaults->delivery_street1 = $wishlist->address->addr1;
-            $defaults->delivery_street2 = $wishlist->address->addr2;
-            $defaults->delivery_city = $wishlist->address->city;
-            $defaults->delivery_country = $wishlist->address->country;
-            $defaults->delivery_zone = $wishlist->address->zone;
-            $defaults->delivery_postal_code = $wishlist->address->postcode;
-            $defaults->delivery_phone = $wishlist->address->phone;
-            $form['panes']['delivery']['address']['#default_value'] = $defaults;
+          if (variable_get('uc_wishlist_save_address', TRUE) &&
+          !empty($wishlist->address->firstname) && !empty($wishlist->address->lastname) &&
+          !empty($wishlist->address->addr1) && !empty($wishlist->address->postcode) &&
+          is_object($form['panes']['delivery']['address']['#default_value']) &&
+          empty($form['panes']['delivery']['address']['#default_value']->delivery_first_name)) {
+            $order = uc_order_load($_SESSION['cart_order']);
+            if ($order) {
+              $defaults = $order;
+              $defaults->delivery_first_name = $wishlist->address->firstname;
+              $defaults->delivery_last_name = $wishlist->address->lastname;
+              $defaults->delivery_company = $wishlist->address->company;
+              $defaults->delivery_street1 = $wishlist->address->addr1;
+              $defaults->delivery_street2 = $wishlist->address->addr2;
+              $defaults->delivery_city = $wishlist->address->city;
+              $defaults->delivery_country = $wishlist->address->country;
+              $defaults->delivery_zone = $wishlist->address->zone;
+              $defaults->delivery_postal_code = $wishlist->address->postcode;
+              $defaults->delivery_phone = $wishlist->address->phone;
+              $form['panes']['delivery']['address']['#default_value'] = $defaults;
 
-            drupal_set_message(t('This order contains items from a wish list. The delivery address has been automatically set to the preferred address from the wish list. You may change this address.'));
+              drupal_set_message(t('This order contains items from a wish list. The delivery address has been automatically set to the preferred address from the wish list. You may change this address.'));
+            }
           }
         }
       }
