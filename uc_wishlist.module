@@ -305,6 +305,16 @@ function uc_wishlist_user_cancel($edit, $account, $method) {
 }
 
 /**
+ * Implements hook_user_delete().
+ */
+function uc_wishlist_user_delete($account) {
+  db_query("delete from {uc_wishlist_products} where wid in (select wid from {uc_wishlists} where uid = :uid)", array(':uid' => $account->uid));
+  db_delete ("uc_wishlists")
+    ->condition('uid', $account->uid)
+    ->execute();
+}
+
+/**
  * Implements hook_form_alter().
  *
  * Alter uc_product_add_to_cart_form instances to include 'add to wish list'
