@@ -113,6 +113,20 @@ function uc_wishlist_schema() {
   return $schema;
 }
 
+/**
+ * Implements hook_uninstall().
+ * For now it basically removes the used variables.
+ */
+function uc_wishlist_uninstall() {
+  variable_del('uc_wishlist_default_title');
+  variable_del('uc_wishlist_save_address');
+  variable_del('uc_wishlist_allow_anonymous');
+  variable_del('uc_wishlist_default_private');
+  variable_del('uc_wishlist_allow_private');
+  variable_del('uc_wishlist_out_of_stock');
+  variable_del('uc_wishlist_default_from');
+}
+
 function uc_wishlist_update_7000() {
   if (!db_field_exists('uc_wishlists', 'private')) {
     // Create a private column.
