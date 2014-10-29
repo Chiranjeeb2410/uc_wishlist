@@ -425,12 +425,6 @@ function uc_product_update_wishlist_item($nid, $data = array(), $qty, $wid = NUL
   else {
     db_query("UPDATE {uc_wishlist_products} SET qty = %d, changed = %d WHERE wpid = %d", $qty, time(), $wpid);
   }
-
-  // Rebuild the items hash
- /* uc_wishlist_get_contents();
-  if (!substr(request_uri(), 'wishlist', -4)) {
-    drupal_set_message(t('Your item(s) have been updated.'));
-  }*/
 }
 
 
