@@ -362,9 +362,6 @@ function uc_wishlist_cart_item($op, &$item) {
         }
       }
       break;
-    case 'can_ship':
-      // TODO: Another test whether item is still needed.
-      return TRUE;
   }
 }
 
