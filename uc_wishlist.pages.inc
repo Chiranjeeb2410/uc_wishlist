@@ -75,10 +75,10 @@ function uc_wishlist_display($wid = NULL, $mode = 'wid') {
 
   // Add expiration information to the display.
   if ($wishlist->expiration < time()) {
-    $output .= '<p>'. t('This wish list may be no longer valid. It was for an event on @date.', array('@date' => date('F j, Y', $wishlist->expiration))) .'</p>';
+    $output .= '<p>'. t('This wish list may be no longer valid. It was for an event on @date.', array('@date' => format_date($wishlist->expiration))) .'</p>';
   }
   elseif ($wishlist->expiration > 0) {
-    $output .= '<p>'. t('This wish list is valid until @date.', array('@date' => date('F j, Y', $wishlist->expiration))) .'</p>';
+    $output .= '<p>'. t('This wish list is valid until @date.', array('@date' => format_date($wishlist->expiration))) .'</p>';
   }
 
   $items = uc_wishlist_get_contents($wid);
