@@ -983,3 +983,12 @@ function uc_wishlist_mail($key, &$message, $params) {
     $message['headers'] += $params['headers'];
   }
 }
+
+/**
+ * Implements hook_views_api()
+ */
+function uc_wishlist_views_api () {
+  return array(
+    'api' => 3,
+  );
+}
