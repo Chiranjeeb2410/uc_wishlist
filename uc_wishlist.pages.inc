@@ -8,9 +8,10 @@
 /**
  * Display a wish list for viewing or altering.
  *
- * @param $wid
+ * @param numeric $wid
  *   The ID of the wish list to display.
- * @return
+ *
+ * @return html
  *   HTML output for the wish list display and form.
  */
 function uc_wishlist_display($wid = NULL, $mode = 'wid') {
@@ -24,7 +25,7 @@ function uc_wishlist_display($wid = NULL, $mode = 'wid') {
     $own = TRUE;
   }
   elseif (is_object($wid)) {
-    // $wid is actually a user account
+    // $wid is actually a user account.
     $wid = uc_wishlist_get_wid($wid->uid);
   }
 
@@ -101,7 +102,7 @@ function uc_wishlist_user_display($wid = NULL, $mode = 'wid') {
   $own = FALSE;
 
   if ($mode == 'user') {
-    // $wid is actually a user account
+    // $wid is actually a user account.
     $wid = uc_wishlist_get_wid($wid->uid);
   }
   elseif (empty($wid)) {
@@ -422,47 +423,41 @@ function uc_wishlist_view_form($form, $form_state, $items, $wid, $own) {
       '#maxlength' => 6,
     );
 
-    /**
-     * Checking if uc_stock module is install in the site and
-     * prevent user to add product into cart if the stock value of the product is equal to 0.
-     */
+    // Checking if uc_stock module is install in the site and
+    // prevent user to add product into cart if the stock value of the product
+    // is equal to 0.
 
-    //Checking if uc_stock module install in the site.
+    // Checking if uc_stock module install in the site.
     if (module_exists('uc_stock')) {
 
-      /**
-       * If product kit module is installed in the site and wishlist node type is product kit.
-       */
+      // If product kit module is installed in the site and wishlist node type
+      // is product kit.
       if (module_exists('uc_product_kit') && $node->type == 'product_kit') {
 
-        /**
-         * Getting the number of products attached with the Product Kit.
-         * As there is no stock configuration, so we will check the stock value of the each product of Product Kit.
-         *
-         * If all products of the Product Kit has stock active, then we allow user to purchase product kit.
-         * @var unknown_type
-         */
+        // Getting the number of products attached with the Product Kit.
+        // As there is no stock configuration, so we will check the stock value
+        // of the each product of Product Kit.
+
+        // If all products of the Product Kit has stock active, then we allow
+        // user to purchase product kit.
+        // @var unknown_type .
 
         $products = $node->products;
 
         $stock = TRUE;
 
-        //Looping through each product.
+        // Looping through each product.
         foreach ($products as $product) {
 
-          //Checking stock level of the product
+          // Checking stock level of the product.
           if (!uc_stock_level($product->model)) {
             $stock = FALSE;
           }
         }
-
       }
       else {
-
-        /**
-         * Getting stock value of the particular product SKU.
-         * It will return FALSE, if there stock level is not active to product SKU.
-         */
+        // Getting stock value of the particular product SKU.
+        // It will return FALSE, if stock level is not active to product SKU.
         $stock = uc_stock_level($node->model);
       }
 
@@ -484,13 +479,11 @@ function uc_wishlist_view_form($form, $form_state, $items, $wid, $own) {
       }
     }
     else {
-
       $element['addcart'] = array(
-      '#type' => 'submit',
-      '#name' => 'addcart-' . $item->wpid,
-      '#value' => t('Add to cart'),
+        '#type' => 'submit',
+        '#name' => 'addcart-' . $item->wpid,
+        '#value' => t('Add to cart'),
       );
-
     }
 
     $form['items'][] = $element;
@@ -524,10 +517,8 @@ function theme_uc_wishlist_view_form($variables) {
 
   $own = isset($form['own']) ? TRUE : FALSE;
 
-  $header = array(t('Products'), '', t('Wanted'), t('Have'), t('Qty.'), t('Purchase'), array(
-      'data' => t('Total'),
-      'align' => 'right',
-  ));
+  $header = array(t('Products'), '', t('Wanted'), t('Have'), t('Qty.'), t('Purchase'),
+    array('data' => t('Total'), 'align' => 'right'));
 
   if ($own) {
     array_unshift($header, t('Remove'));
@@ -540,16 +531,16 @@ function theme_uc_wishlist_view_form($variables) {
     $img = uc_product_get_picture($nid, 'uc_cart');
 
     $row = array(
-    empty($img) ? '' : drupal_render($img),
-    $desc,
-    $form['items'][$i]['wantqty'] ? drupal_render($form['items'][$i]['wantqty']) : '',
-    $form['items'][$i]['haveqty'] ? drupal_render($form['items'][$i]['haveqty']) : '',
-    $form['items'][$i]['qty'] ? drupal_render($form['items'][$i]['qty']) : '',
-    $form['items'][$i]['addcart'] ? drupal_render($form['items'][$i]['addcart']) : '',
-    array(
+      empty($img) ? '' : drupal_render($img),
+      $desc,
+      $form['items'][$i]['wantqty'] ? drupal_render($form['items'][$i]['wantqty']) : '',
+      $form['items'][$i]['haveqty'] ? drupal_render($form['items'][$i]['haveqty']) : '',
+      $form['items'][$i]['qty'] ? drupal_render($form['items'][$i]['qty']) : '',
+      $form['items'][$i]['addcart'] ? drupal_render($form['items'][$i]['addcart']) : '',
+      array(
         'data' => uc_currency_format($form['items'][$i]['#total']),
         'nowrap' => 'nowrap',
-    ),
+      ),
     );
 
     if (isset($form['items'][$i]['remove'])) {
@@ -605,7 +596,7 @@ function uc_wishlist_view_form_submit($form, &$form_state) {
 
       drupal_set_message(t('Your wish list has been updated.'));
 
-      $form_state['redirect'] = 'user/'.$user->uid.'/wishlist';
+      $form_state['redirect'] = 'user/' . $user->uid . '/wishlist';
     }
   }
   else {
@@ -709,7 +700,7 @@ function uc_wishlist_search_form($form, $form_state, $keywords = '') {
       'links' => $links,
       'attributes' => array(
         'class' => array('wishlist'),
-    ),
+      ),
       'heading' => NULL,
     ));
   }
@@ -738,7 +729,7 @@ function uc_wishlist_search_form_submit($form, &$form_state) {
 }
 
 /**
- * Email form for wishlist
+ * Email form for wishlist.
  */
 function uc_wishlist_email_form() {
 
@@ -778,55 +769,76 @@ function uc_wishlist_email_form() {
 }
 
 /**
- * Validate function for the email wishlist.
- * Checking if user enter the valid email address
- * @param $form
- * @param $form_state
+ * Validate function for the wishlist Email form use to send email.
+ *
+ * @param array $form
+ *   Form array.
+ *
+ * @param array $form_state
+ *   Formstate array contains the user submitted values.
+ *
+ * @return none
+ *   Returns nothing.
  */
 function uc_wishlist_email_form_validate($form, &$form_state) {
 
-  //Exploding the emails id of the recpients
+  // Exploding the emails id of the recpients.
   $emails = explode(",", $form_state['values']['recipients']);
   $emails = array_filter($emails);
   foreach ($emails as $email) {
     $email = trim($email);
     if ($email != '' && !valid_email_address($email)) {
-      //Generating error
+      // Generating error.
       form_set_error('emails', t('%email is not a valid email address', array('%email' => $email)));
     }
   }
 }
 
 /**
- * Submit callback for the wishlist
- * Sending mail to recepient.
- * @param $form
- * @param $form_state
+ * Submit callback for the wishlist Email form use to send email.
+ *
+ * @param array $form
+ *   Form array.
+ *
+ * @param array $form_state
+ *   Formstate array contains the user submitted values.
+ *
+ * @return none
+ *   Returns nothing.
  */
-
 function uc_wishlist_email_form_submit($form, &$form_state) {
 
-
-  //Exploding the emails id of the recpients
+  // Exploding the emails id of the recpients.
   $emails = explode(",", $form_state['values']['recipients']);
 
   $emails = array_filter($emails);
-  //Getting subject of the mail
+  // Getting subject of the mail.
   $subject = $form_state['values']['subject'];
-  //Getting message of the mail
+  // Getting message of the mail.
   $message = $form_state['values']['message'];
   $wid = $form_state['values']['wid'];
-  $message = $message . l('Wishlist', 'wishlist/' . $wid);
+  $message = $message . l(t('Wishlist'), 'wishlist/' . $wid);
 
   foreach ($emails as $email) {
     uc_wishlist_send_mail($email, $subject, $message);
   }
 }
 
-/*
+/**
  * Wishlist: Sending mail function.
+ *
+ * @param mail $to
+ *   Reciever email address.
+ *
+ * @param string $subject
+ *   Subject of the mail.
+ *
+ * @param string $message
+ *   Body of the mail.
+ *
+ * @return none
+ *   Returns nothing.
  */
-
 function uc_wishlist_send_mail($to, $subject, $message) {
 
   $from = variable_get('uc_wishlist_default_from', '');
@@ -836,6 +848,6 @@ function uc_wishlist_send_mail($to, $subject, $message) {
     'from' => $from,
   );
 
-  drupal_mail('uc_wishlist',  'wishlist',  $to, language_default(),  $params, $from, TRUE);
+  drupal_mail('uc_wishlist', 'wishlist', $to, language_default(), $params, $from, TRUE);
 
 }

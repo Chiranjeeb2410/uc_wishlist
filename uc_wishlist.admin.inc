@@ -42,7 +42,7 @@ function uc_wishlist_admin_settings_form($form, &$form_state) {
     '#description' => t('Check this box to allow users to make their wish list private and exclude it from wish list search results.This option will disable when <em>Make users wishlist private by default.</em> is enabled.'),
   );
 
-  //Allow admin to configure out of stock.
+  // Allow admin to configure out of stock.
   $form['uc_wishlist_out_of_stock'] = array(
     '#type' => 'checkbox',
     '#title' => t('Allow users to add out of stock item into wishlist.'),

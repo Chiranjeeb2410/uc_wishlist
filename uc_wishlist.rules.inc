@@ -29,7 +29,5 @@ function uc_wishlist_rules_condition_info() {
  * Checks that the order has wishlist product.
  */
 function uc_wishlist_condition_product_wishlist($order, $settings) {
-
- return  uc_wishlist_order_wishlist($order);
-
+  return uc_wishlist_order_wishlist($order);
 }
