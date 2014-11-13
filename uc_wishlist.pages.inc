@@ -731,10 +731,11 @@ function uc_wishlist_search_form_submit($form, &$form_state) {
 /**
  * Email form for wishlist.
  */
-function uc_wishlist_email_form() {
+function uc_wishlist_email_form($node, &$form_state, $account) {
 
   global $user;
-  $wid = arg(1);
+  // TODO: Handle multiple wishlists?
+  $wid = uc_wishlist_get_wid($account->uid);
 
   $form['subject'] = array(
     '#type' => 'textfield',
@@ -748,7 +749,6 @@ function uc_wishlist_email_form() {
     '#required' => TRUE,
     '#description' => 'Email address of the reciepient. You can add multiple emaill address as comma seperated.',
   );
-
   $form['message'] = array(
     '#type' => 'textarea',
     '#title' => 'Message',
@@ -757,7 +757,7 @@ function uc_wishlist_email_form() {
     '#description' => 'Enter the email message.',
   );
   $form['wid'] = array(
-    '#type' => 'hidden',
+    '#type' => 'value',
     '#value' => $wid,
   );
   $form['submit'] = array(
@@ -812,10 +812,10 @@ function uc_wishlist_email_form_submit($form, &$form_state) {
   $emails = explode(",", $form_state['values']['recipients']);
 
   $emails = array_filter($emails);
-  // Getting subject of the mail.
-  $subject = $form_state['values']['subject'];
-  // Getting message of the mail.
-  $message = $form_state['values']['message'];
+  // Getting subject of the mail and its sanitization.
+  $subject = check_plain($form_state['values']['subject']);
+  // Getting message of the mail and text sanitization.
+  $message = check_markup($form_state['values']['message']);
   $wid = $form_state['values']['wid'];
   $message = $message . l(t('Wishlist'), 'wishlist/' . $wid);
 
@@ -847,7 +847,5 @@ function uc_wishlist_send_mail($to, $subject, $message) {
     'body' => $message,
     'from' => $from,
   );
-
   drupal_mail('uc_wishlist', 'wishlist', $to, language_default(), $params, $from, TRUE);
-
 }

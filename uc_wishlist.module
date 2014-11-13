@@ -94,7 +94,7 @@ function uc_wishlist_menu() {
     'title' => 'Wishlist email',
     'description' => 'Email wishlist to other user.',
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('uc_wishlist_email_form'),
+    'page arguments' => array('uc_wishlist_email_form' , 1),
     'access arguments' => array('email wishlist'),
     'file' => 'uc_wishlist.pages.inc',
     'type' => MENU_LOCAL_TASK,
