@@ -739,22 +739,22 @@ function uc_wishlist_email_form($node, &$form_state, $account) {
 
   $form['subject'] = array(
     '#type' => 'textfield',
-    '#title' => 'Subject',
+    '#title' => t('Subject'),
     '#required' => TRUE,
-    '#description' => 'Enter the Email subject',
+    '#description' => t('Enter Email Subject.'),
   );
   $form['recipients'] = array(
     '#type' => 'textfield',
-    '#title' => 'Recipients',
+    '#title' => t('Recipients'),
     '#required' => TRUE,
-    '#description' => 'Email address of the reciepient. You can add multiple emaill address as comma seperated.',
+    '#description' => t('Email address of the reciepient. Seperate recipients using a comma.'),
   );
   $form['message'] = array(
     '#type' => 'textarea',
-    '#title' => 'Message',
+    '#title' => t('Message'),
     '#rows' => 6,
     '#required' => TRUE,
-    '#description' => 'Enter the email message.',
+    '#description' => t('Enter Email Message.'),
   );
   $form['wid'] = array(
     '#type' => 'value',
