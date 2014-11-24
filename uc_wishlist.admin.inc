@@ -23,12 +23,6 @@ function uc_wishlist_admin_settings_form($form, &$form_state) {
     '#default_value' => variable_get('uc_wishlist_save_address', TRUE),
     '#description' => t('Check this box to permit users to specify a default delivery address when creating a wish list. If not checked, purchasers of wish list items must enter a delivery address at checkout.'),
   );
-  $form['uc_wishlist_allow_anonymous'] = array(
-    '#type' => 'checkbox',
-    '#title' => t('Allow anonymous users to create wish lists.'),
-    '#default_value' => variable_get('uc_wishlist_allow_anonymous', FALSE),
-    '#description' => t('Check this box to allow anonymous users to create wish lists. If not checked, anonymous visitors will be prompted to login or register before creating a wish list.'),
-  );
   $form['uc_wishlist_default_private'] = array(
     '#type' => 'checkbox',
     '#title' => t('Make users wishlist private by default.'),

@@ -130,7 +130,7 @@ function uc_wishlist_uninstall() {
 /**
  * Update function used to add the private column.
  * @return none
- *  Returns nothing.
+ *   Returns nothing.
  */
 function uc_wishlist_update_7000() {
   if (!db_field_exists('uc_wishlists', 'private')) {
@@ -142,4 +142,16 @@ function uc_wishlist_update_7000() {
       'description' => 'Private',
     ));
   }
+}
+
+/**
+ * Replaced the anonymous configuration settings with 'create wish lists'
+ * permissions.
+ */
+function uc_wishlist_update_7001() {
+  $allow_anonymous = variable_get('uc_wishlist_allow_anonymous', FALSE);
+  if ($allow_anonymous) {
+    user_role_change_permissions(DRUPAL_ANONYMOUS_RID, array('create wish lists' => TRUE));
+  }
+  variable_del('uc_wishlist_allow_anonymous');
 }

@@ -656,7 +656,7 @@ function uc_wishlist_create_wishlist($title = NULL) {
   global $user;
 
   // Abort if user is not logged in and anonymous wish lists are not allowed.
-  if (!$user->uid && !variable_get('uc_wishlist_allow_anonymous', FALSE)) {
+  if (!$user->uid && !user_access('create wish lists')) {
     drupal_set_message(t('You must be logged in to create a wish list. Please <a href="!login_url">login</a> or <a href="!register_url">register</a>.',
       array(
         '!login_url' => url('user', array('query' => drupal_get_destination())),
