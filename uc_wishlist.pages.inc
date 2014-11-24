@@ -638,7 +638,7 @@ function uc_wishlist_search_form($form, $form_state, $keywords = '') {
   $path = 'wishlist';
   $query = NULL;
 
-  if (!$user->uid && !variable_get('uc_wishlist_allow_anonymous', FALSE)) {
+  if (!$user->uid && !user_access('create wish lists')) {
     $path = 'user';
     $query = 'destination=wishlist';
   }
