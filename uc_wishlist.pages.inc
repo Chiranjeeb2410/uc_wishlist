@@ -640,7 +640,7 @@ function uc_wishlist_search_form($form, $form_state, $keywords = '') {
 
   if (!$user->uid && !user_access('create wish lists')) {
     $path = 'user';
-    $query = 'destination=wishlist';
+    $query = array('destination' => 'wishlist');
   }
 
   $form['wishlist_link'] = array(
