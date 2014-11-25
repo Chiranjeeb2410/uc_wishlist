@@ -149,17 +149,19 @@ function uc_wishlist_user_display($wid = NULL, $mode = 'wid') {
       $collapsed = FALSE;
     }
 
-    $form = drupal_get_form('uc_wishlist_settings_form', $wishlist, $collapsed);
-    $output .= drupal_render($form);
+    $settings_form = drupal_get_form('uc_wishlist_settings_form', $wishlist, $collapsed);
   }
+
   // Display only if it's my own or it's not private.
   if (!$wishlist->private || $own) {
+    $expired = $wishlist->expiration < REQUEST_TIME;
+    $expiration_date = format_date($wishlist->expiration, 'uc_store');
     // Add expiration information to the display.
-    if ($wishlist->expiration < REQUEST_TIME) {
-      $output .= '<p>' . t('This wish list may no longer be valid. It was for an event on @date.', array('@date' => date('F j, Y', $wishlist->expiration))) . '</p>';
+    if ($expired) {
+      $message = t('This wish list may no longer be valid. It was for an event on @date.', array('@date' => $expiration_date));
     }
     elseif ($wishlist->expiration > 0) {
-      $output .= '<p>' . t('This wish list is valid until @date.', array('@date' => date('F j, Y', $wishlist->expiration))) . '</p>';
+      $message = t('This wish list is valid until @date.', array('@date' => $expiration_date));
     }
 
     $items = uc_wishlist_get_contents($wid);
@@ -169,7 +171,15 @@ function uc_wishlist_user_display($wid = NULL, $mode = 'wid') {
     }
 
     $form = drupal_get_form('uc_wishlist_view_form', $items, $wid, $own);
-    $output .= drupal_render($form);
+    $output = theme('uc_wishlist_user_display', array(
+      'settings_form' => $settings_form,
+      'expired' => $expired,
+      'expiration_date' => $expiration_date,
+      'message' => $message,
+      'wishlist' => $form,
+      'email_link' => url('user/' . $user->uid . '/wishlist-email'),
+      )
+    );
   }
   return $output;
 }
@@ -762,7 +772,7 @@ function uc_wishlist_email_form($node, &$form_state, $account) {
   );
   $form['submit'] = array(
     '#type' => 'submit',
-    '#value' => 'Send',
+    '#value' => t('Send'),
   );
 
   return $form;
@@ -783,7 +793,7 @@ function uc_wishlist_email_form($node, &$form_state, $account) {
 function uc_wishlist_email_form_validate($form, &$form_state) {
 
   // Exploding the emails id of the recpients.
-  $emails = explode(",", $form_state['values']['recipients']);
+  $emails = explode(',', $form_state['values']['recipients']);
   $emails = array_filter($emails);
   foreach ($emails as $email) {
     $email = trim($email);
@@ -809,7 +819,7 @@ function uc_wishlist_email_form_validate($form, &$form_state) {
 function uc_wishlist_email_form_submit($form, &$form_state) {
 
   // Exploding the emails id of the recpients.
-  $emails = explode(",", $form_state['values']['recipients']);
+  $emails = explode(',', $form_state['values']['recipients']);
 
   $emails = array_filter($emails);
   // Getting subject of the mail and its sanitization.
@@ -817,7 +827,7 @@ function uc_wishlist_email_form_submit($form, &$form_state) {
   // Getting message of the mail and text sanitization.
   $message = check_markup($form_state['values']['message']);
   $wid = $form_state['values']['wid'];
-  $message = $message . l(t('Wishlist'), 'wishlist/' . $wid);
+  $message = $message . "\n" . l(t('Wishlist'), 'wishlist/' . $wid);
 
   foreach ($emails as $email) {
     uc_wishlist_send_mail($email, $subject, $message);

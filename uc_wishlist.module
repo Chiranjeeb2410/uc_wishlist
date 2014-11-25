@@ -152,6 +152,17 @@ function uc_wishlist_theme() {
     'uc_wishlist_view_form' => array(
       'render element' => 'form',
     ),
+    'uc_wishlist_user_display' => array(
+      'variables' => array(
+        'settings_form' => array(),
+        'expired' => FALSE,
+        'expiration_date' => '',
+        'message' => '',
+        'wishlist' => '',
+        'email_link' => '',
+      ),
+      'template' => 'uc_wishlist_user_display',
+    ),
   );
 }
 
