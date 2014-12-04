@@ -342,61 +342,75 @@ function uc_wishlist_user_delete($account) {
  */
 function uc_wishlist_form_alter(&$form, &$form_state, $form_id) {
 
-  // Allow users to add product into wishlist, which has create wishlist access.
+  if ((strpos($form_id, 'uc_product_add_to_cart_form_') === 0) ||
+      (strpos($form_id, 'uc_product_kit_add_to_cart_form_') === 0)) {
 
-  if (user_access('create wish lists') && variable_get('uc_wishlist_out_of_stock', FALSE)) {
-    if ((strpos($form_id, 'uc_product_add_to_cart_form_') === 0) || (strpos($form_id, 'uc_product_kit_add_to_cart_form_') === 0)) {
-      // Add the wish list button to the add to cart form.
-      $form['actions']['wishlist'] = array(
-        '#type' => 'submit',
-        '#attributes' => array('class' => array('node-add-to-wishlist')),
-        '#value' => t('Add to wish list'),
-        '#submit' => array('uc_wishlist_add_to_wishlist_submit'),
-        '#weight' => 1,
-      );
+    // Allow users which has 'create wish lists' permissions.
+    if (!user_access('create wish lists')) {
+      return;
     }
 
-    // Checking if the product is added from wishlist in checkout page.
-    if ($form_id == 'uc_cart_checkout_form') {
-      if (isset($form['panes']['cart']['cart_review_table']['#items']) && !empty($form['panes']['cart']['cart_review_table']['#items'])) {
-        $items = $form['panes']['cart']['cart_review_table']['#items'];
-        $wids = array();
-
-        foreach ($items as $item) {
-          if (!empty($item->data['wid'])) {
-            $wids[] = $item->data['wid'];
-          }
+    $product = $form_state['build_info']['args'][0];
+    // Check only stock active products, and if not, bail out.
+    if (!variable_get('uc_wishlist_out_of_stock', FALSE)) {
+      if (module_exists('uc_stock')) {
+        $stock_level = uc_stock_level($product->model);
+        if ($stock_level !== FALSE && $stock_level <= 0) {
+          return;
         }
-        $wids = array_unique($wids);
+      }
+    }
 
-        if (count($wids) > 1) {
-          drupal_set_message(t('This order contains items from multiple wish lists. It is not possible to automatically address this order for its recipient.'));
+    // Add the wish list button to the add to cart form.
+    $form['actions']['wishlist'] = array(
+      '#type' => 'submit',
+      '#attributes' => array('class' => array('node-add-to-wishlist')),
+      '#value' => t('Add to wish list'),
+      '#submit' => array('uc_wishlist_add_to_wishlist_submit'),
+      '#weight' => 1,
+    );
+  }
+
+  // Checking if the product is added from wishlist in checkout page.
+  if ($form_id == 'uc_cart_checkout_form') {
+    if (isset($form['panes']['cart']['cart_review_table']['#items']) && !empty($form['panes']['cart']['cart_review_table']['#items'])) {
+      $items = $form['panes']['cart']['cart_review_table']['#items'];
+      $wids = array();
+
+      foreach ($items as $item) {
+        if (!empty($item->data['wid'])) {
+          $wids[] = $item->data['wid'];
         }
-        elseif (count($wids) == 1) {
-          $wishlist = uc_wishlist_load($wids[0]);
+      }
+      $wids = array_unique($wids);
 
-          if (variable_get('uc_wishlist_save_address', TRUE) &&
-          !empty($wishlist->address->firstname) && !empty($wishlist->address->lastname) &&
-          !empty($wishlist->address->addr1) && !empty($wishlist->address->postcode) &&
-          is_object($form['panes']['delivery']['address']['#default_value']) &&
-          empty($form['panes']['delivery']['address']['#default_value']->delivery_first_name)) {
-            $order = uc_order_load($_SESSION['cart_order']);
-            if ($order) {
-              $defaults = $order;
-              $defaults->delivery_first_name = $wishlist->address->firstname;
-              $defaults->delivery_last_name = $wishlist->address->lastname;
-              $defaults->delivery_company = $wishlist->address->company;
-              $defaults->delivery_street1 = $wishlist->address->addr1;
-              $defaults->delivery_street2 = $wishlist->address->addr2;
-              $defaults->delivery_city = $wishlist->address->city;
-              $defaults->delivery_country = $wishlist->address->country;
-              $defaults->delivery_zone = $wishlist->address->zone;
-              $defaults->delivery_postal_code = $wishlist->address->postcode;
-              $defaults->delivery_phone = $wishlist->address->phone;
-              $form['panes']['delivery']['address']['#default_value'] = $defaults;
+      if (count($wids) > 1) {
+        drupal_set_message(t('This order contains items from multiple wish lists. It is not possible to automatically address this order for its recipient.'));
+      }
+      elseif (count($wids) == 1) {
+        $wishlist = uc_wishlist_load($wids[0]);
 
-              drupal_set_message(t('This order contains items from a wish list. The delivery address has been automatically set to the preferred address from the wish list. You may change this address.'));
-            }
+        if (variable_get('uc_wishlist_save_address', TRUE) &&
+            !empty($wishlist->address->firstname) && !empty($wishlist->address->lastname) &&
+            !empty($wishlist->address->addr1) && !empty($wishlist->address->postcode) &&
+            is_object($form['panes']['delivery']['address']['#default_value']) &&
+            empty($form['panes']['delivery']['address']['#default_value']->delivery_first_name)) {
+          $order = uc_order_load($_SESSION['cart_order']);
+          if ($order) {
+            $defaults = $order;
+            $defaults->delivery_first_name = $wishlist->address->firstname;
+            $defaults->delivery_last_name = $wishlist->address->lastname;
+            $defaults->delivery_company = $wishlist->address->company;
+            $defaults->delivery_street1 = $wishlist->address->addr1;
+            $defaults->delivery_street2 = $wishlist->address->addr2;
+            $defaults->delivery_city = $wishlist->address->city;
+            $defaults->delivery_country = $wishlist->address->country;
+            $defaults->delivery_zone = $wishlist->address->zone;
+            $defaults->delivery_postal_code = $wishlist->address->postcode;
+            $defaults->delivery_phone = $wishlist->address->phone;
+            $form['panes']['delivery']['address']['#default_value'] = $defaults;
+
+            drupal_set_message(t('This order contains items from a wish list. The delivery address has been automatically set to the preferred address from the wish list. You may change this address.'));
           }
         }
       }
