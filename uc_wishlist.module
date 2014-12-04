@@ -114,13 +114,13 @@ function uc_wishlist_theme() {
   return array(
     'uc_wishlist_block_title' => array(
       'arguments' => array('wishlist_image' => NULL, 'uc_wishlist_path' => FALSE, 'arrow_up_image' => FALSE),
-  ),
+    ),
     'uc_wishlist_block_content' => array(
       'arguments' => array(),
-  ),
+    ),
     'uc_wishlist_view_form' => array(
       'arguments' => array('form' => NULL),
-  ),
+    ),
   );
 }
 
@@ -145,7 +145,7 @@ function uc_wishlist_search($op = 'search', $keys = NULL) {
 
       while ($wishlist = db_fetch_object($result)) {
         $results[] = array(
-          'link' => url('wishlist/'. $wishlist->wid),
+          'link' => url('wishlist/' . $wishlist->wid),
           'type' => t('Wish list'),
           'title' => filter_xss($wishlist->title, array()),
         );
@@ -163,6 +163,7 @@ function uc_wishlist_block($op = 'list', $delta = 0, $edit = array()) {
     // Return a list of blocks enabled by this module.
     case 'list':
       $blocks[1]['info'] = t('Find a wish list');
+
       return $blocks;
 
     case 'view':
@@ -188,6 +189,7 @@ function uc_wishlist_exit() {
   foreach ($pages as $page) {
     if ($page && strstr($this_page, $page) !== FALSE) {
       cache_clear_all($base_root . $this_page, 'cache_page');
+
       return;
     }
   }
@@ -227,11 +229,11 @@ function uc_wishlist_user($op, &$edit, &$user, $category = NULL) {
       $res = db_query("SELECT * FROM {uc_wishlists} WHERE uid = %d", $user->uid);
       $items = array();
       while ($obj = db_fetch_object($res)) {
-        $items['wishlist_'. $obj->wid] = array(
+        $items['wishlist_' . $obj->wid] = array(
           'value' => l($obj->title, "wishlist/{$obj->wid}"),
         );
       }
-      if (count($items)>0) {
+      if (count($items) > 0) {
         return array(t('Wish lists') => $items);
       }
       break;
@@ -260,17 +262,34 @@ function uc_wishlist_user($op, &$edit, &$user, $category = NULL) {
  * of a wish list's owner, if items come from a single wish list.
  */
 function uc_wishlist_form_alter(&$form, &$form_state, $form_id) {
-  if (strpos($form_id, 'uc_product_add_to_cart_form_') === 0) {
+  if (strpos($form_id, 'uc_product') === 0 && strpos($form_id, '_add_to_cart_form_') !== FALSE) {
 
     global $user;
     //Checking if user has access to wish list
     if (user_access('access wish lists', $user)) {
       // Add the wish list button to the add to cart form.
       $form['wishlist'] = array(
-      '#type' => 'submit',
-      '#value' => t('Add to wish list'),
-      '#submit' => array('uc_wishlist_add_to_wishlist_submit'),
+        '#type' => 'submit',
+        '#value' => t('Add to wish list'),
+        '#submit' => array('uc_wishlist_add_to_wishlist_submit'),
       );
+    }
+  }
+
+  if (strpos($form_id, 'uc_product_kit_add_to_cart_form_') === 0) {
+    // When adding a product kit, disable its default submit handler.
+    // Otherwise, it will also be added to the cart.
+    $new_submit = $form['#submit'];
+    $submit_position = array_search('uc_product_kit_add_to_cart_form_submit', $new_submit);
+
+    if ($submit_position !== FALSE) {
+      foreach ($form['#submit'] as $key => $function) {
+        if ($key === $submit_position) {
+          unset($new_submit[$key]);
+        }
+      }
+      // Re-index array.
+      $form['#submit'] = array_values($new_submit);
     }
   }
 
@@ -288,22 +307,24 @@ function uc_wishlist_form_alter(&$form, &$form_state, $form_id) {
     if (count($wids) > 1) {
       drupal_set_message(t('This order contains items from multiple wish lists. It is not possible to automatically address this order for its recipient.'));
     }
-    else if (count($wids) == 1) {
-      $wishlist = uc_wishlist_load($wids[0]);
+    else {
+      if (count($wids) == 1) {
+        $wishlist = uc_wishlist_load($wids[0]);
 
-      if (!empty($wishlist->address->firstname) && !empty($wishlist->address->lastname) && !empty($wishlist->address->addr1) && !empty($wishlist->address->postcode)) {
-        $form['panes']['delivery']['delivery_first_name']['#default_value'] = $wishlist->address->firstname;
-        $form['panes']['delivery']['delivery_last_name']['#default_value'] = $wishlist->address->lastname;
-        $form['panes']['delivery']['delivery_company']['#default_value'] = $wishlist->address->company;
-        $form['panes']['delivery']['delivery_street1']['#default_value'] = $wishlist->address->addr1;
-        $form['panes']['delivery']['delivery_street2']['#default_value'] = $wishlist->address->addr2;
-        $form['panes']['delivery']['delivery_city']['#default_value'] = $wishlist->address->city;
-        $form['panes']['delivery']['delivery_country']['#default_value'] = $wishlist->address->country;
-        $form['panes']['delivery']['delivery_zone']['#default_value'] = $wishlist->address->zone;
-        $form['panes']['delivery']['delivery_postal_code']['#default_value'] = $wishlist->address->postcode;
-        $form['panes']['delivery']['delivery_phone']['#default_value'] = $wishlist->address->phone;
+        if (!empty($wishlist->address->firstname) && !empty($wishlist->address->lastname) && !empty($wishlist->address->addr1) && !empty($wishlist->address->postcode)) {
+          $form['panes']['delivery']['delivery_first_name']['#default_value'] = $wishlist->address->firstname;
+          $form['panes']['delivery']['delivery_last_name']['#default_value'] = $wishlist->address->lastname;
+          $form['panes']['delivery']['delivery_company']['#default_value'] = $wishlist->address->company;
+          $form['panes']['delivery']['delivery_street1']['#default_value'] = $wishlist->address->addr1;
+          $form['panes']['delivery']['delivery_street2']['#default_value'] = $wishlist->address->addr2;
+          $form['panes']['delivery']['delivery_city']['#default_value'] = $wishlist->address->city;
+          $form['panes']['delivery']['delivery_country']['#default_value'] = $wishlist->address->country;
+          $form['panes']['delivery']['delivery_zone']['#default_value'] = $wishlist->address->zone;
+          $form['panes']['delivery']['delivery_postal_code']['#default_value'] = $wishlist->address->postcode;
+          $form['panes']['delivery']['delivery_phone']['#default_value'] = $wishlist->address->phone;
 
-        drupal_set_message(t('This order contains items from a wish list. The delivery address has been automatically set to the preferred address from the wish list. You may change this address.'));
+          drupal_set_message(t('This order contains items from a wish list. The delivery address has been automatically set to the preferred address from the wish list. You may change this address.'));
+        }
       }
     }
   }
@@ -391,7 +412,7 @@ function uc_wishlist_order($op, &$arg1, $arg2) {
           'uid' => $o->uid,
           'date' => time(),
         );
-        for ($i=0; $i<$item->qty; $i++) {
+        for ($i = 0; $i < $item->qty; $i++) {
           $witem->purchase[] = $purchase;
         }
         uc_wishlist_update_purchase($witem);
@@ -455,6 +476,7 @@ function uc_wishlist_get_wid($uid = NULL) {
   if (empty($uid)) {
     $uid = uc_wishlist_get_uid();
   }
+
   return db_result(db_query("SELECT wid FROM {uc_wishlists} WHERE uid = '%s'", $uid));
 }
 
@@ -498,7 +520,7 @@ function uc_wishlist_get_contents($wid = NULL) {
   $items = array();
   $res = db_query('SELECT w.*, n.title, n.vid FROM {node} n INNER JOIN {uc_wishlist_products} w ON n.nid = w.nid WHERE w.wid = %d', $wid);
   while ($item = db_fetch_object($res)) {
-    for ($i = 0; $i<count($items); $i++) {
+    for ($i = 0; $i < count($items); $i++) {
       if ($items[$i]->nid == $item->nid && $items[$i]->data == $item->data) {
         $items[$i]->qty += $item->qty;
         continue 2;
@@ -527,7 +549,7 @@ function uc_wishlist_get_contents($wid = NULL) {
       if ($module == 'uc_wishlist') {
         continue;
       }
-      $func = $module .'_cart_item';
+      $func = $module . '_cart_item';
       $func('load', $item);
     }
     $items[] = $item;
@@ -566,10 +588,11 @@ function uc_wishlist_get_product($wpid) {
       if ($module == 'uc_wishlist') {
         continue;
       }
-      $func = $module .'_cart_item';
+      $func = $module . '_cart_item';
       $func('load', $item);
     }
   }
+
   return $item;
 }
 
@@ -592,7 +615,11 @@ function uc_wishlist_create_wishlist($title = NULL) {
 
   // Abort if user is not logged in and anonymous wish lists are not allowed.
   if (!$user->uid && !variable_get('uc_wishlist_allow_anonymous', FALSE)) {
-    drupal_set_message(t('You must be logged in to create a wish list. Please <a href="!login_url">login</a> or <a href="!register_url">register</a>.', array('!login_url' => url('user', array('query' => drupal_get_destination())), '!register_url' => url('user/register', array('query' => drupal_get_destination())))), 'error');
+    drupal_set_message(t('You must be logged in to create a wish list. Please <a href="!login_url">login</a> or <a href="!register_url">register</a>.', array(
+      '!login_url' => url('user', array('query' => drupal_get_destination())),
+      '!register_url' => url('user/register', array('query' => drupal_get_destination()))
+    )), 'error');
+
     return FALSE;
   }
 
@@ -637,6 +664,7 @@ function uc_wishlist_add_item($nid, $qty = 1, $data = NULL, $wid = NULL, $msg = 
     $wid = uc_wishlist_create_wishlist();
     if (!$wid) {
       drupal_set_message(t('Could not create wish list. Adding item failed.'), 'error');
+
       return FALSE;
     }
     $created = TRUE;
@@ -648,22 +676,20 @@ function uc_wishlist_add_item($nid, $qty = 1, $data = NULL, $wid = NULL, $msg = 
     $data = array('module' => 'uc_product');
   }
 
-  if (!uc_product_is_product($node)) {
+  $supported_node_types = array_merge(array_keys(uc_product_node_info()), uc_product_kit_product_types());
+  if (!in_array($node->type, $supported_node_types)) {
     drupal_set_message(t('!title is not a product. Unable to add to wish list.', array('!title' => $node->title)), 'error');
+
     return;
   }
 
-  $result = module_invoke_all('add_to_cart', $nid, $qty, $data);
+  $result = _uc_wishlist_invoke_hook_add_to_cart($nid, $qty, $data);
   if (is_array($result) && !empty($result)) {
     foreach ($result as $row) {
-      if ($row['success'] === FALSE) {
-        if (isset($row['message']) && !empty($row['message'])) {
-          $message = $row['message'];
-        }
-        else {
-          $message = t('Sorry, that item is not available for purchase at this time.');
-        }
+      if ($row['success'] === FALSE && (!isset($row['silent']) || ($row['silent'] === FALSE))) {
+        $message = empty($row['message']) ? t('Sorry, that item is not available for purchase at this time.') : $row['message'];
         drupal_set_message($message, 'error');
+
         return;
       }
     }
@@ -675,7 +701,10 @@ function uc_wishlist_add_item($nid, $qty = 1, $data = NULL, $wid = NULL, $msg = 
   if (is_null($item) || $item === FALSE) {
     db_query("INSERT INTO {uc_wishlist_products} (wid, nid, qty, changed, data, purchase) VALUES (%d, %d, %d, %d, '%s', '')", $wid, $nid, $qty, time(), serialize($data));
     if ($msg) {
-      drupal_set_message(t('<b>@product-title</b> added to <a href="!url">your wish list</a>.', array('@product-title' => $node->title, '!url' => url('wishlist'))));
+      drupal_set_message(t('<b>@product-title</b> added to <a href="!url">your wish list</a>.', array(
+        '@product-title' => $node->title,
+        '!url' => url('wishlist')
+      )));
     }
   }
   else {
@@ -740,7 +769,7 @@ function uc_wishlist_add_items_to_cart($form_values) {
       $wid = uc_wishlist_get_wid();
     }
     foreach ($form_values->items as $item) {
-      if ($item['qty']>0) {
+      if ($item['qty'] > 0) {
         //TODO: add attribute information 'gift to user' that shows up on receipts
         // see uc_wishlist_cart_item
         $data = unserialize($item['data']);
@@ -779,6 +808,33 @@ function uc_wishlist_block_search_form_submit($form, &$form_state) {
     $form_state['redirect'] = 'wishlist/search';
   }
   else {
-    $form_state['redirect'] = 'wishlist/search/'. drupal_urlencode($form_state['values']['keywords']);
+    $form_state['redirect'] = 'wishlist/search/' . drupal_urlencode($form_state['values']['keywords']);
   }
+}
+
+/**
+ * Invoke hook_add_to_cart() in every module except uc_product_kit.
+ * We do this because that module adds the kit to the cart in that hook.
+ * It's probably s a bug.
+ */
+function _uc_wishlist_invoke_hook_add_to_cart() {
+  $args = func_get_args();
+  $hook = 'add_to_cart';
+  $return = array();
+  foreach (module_implements($hook) as $module) {
+    if ($module != 'uc_product_kit') {
+      $function = $module . '_' . $hook;
+      $result = call_user_func_array($function, $args);
+      if (isset($result) && is_array($result)) {
+        $return = array_merge_recursive($return, $result);
+      }
+      else {
+        if (isset($result)) {
+          $return[] = $result;
+        }
+      }
+    }
+  }
+
+  return $return;
 }
