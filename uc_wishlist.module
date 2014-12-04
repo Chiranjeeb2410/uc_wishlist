@@ -683,7 +683,7 @@ function uc_wishlist_add_item($nid, $qty = 1, $data = NULL, $wid = NULL, $msg = 
     return;
   }
 
-  $result = _uc_wishlist_invoke_hook_add_to_cart($nid, $qty, $data);
+  $result = uc_wishlist_invoke_hook_add_to_cart($nid, $qty, $data);
   if (is_array($result) && !empty($result)) {
     foreach ($result as $row) {
       if ($row['success'] === FALSE && (!isset($row['silent']) || ($row['silent'] === FALSE))) {
@@ -817,7 +817,7 @@ function uc_wishlist_block_search_form_submit($form, &$form_state) {
  * We do this because that module adds the kit to the cart in that hook.
  * It's probably s a bug.
  */
-function _uc_wishlist_invoke_hook_add_to_cart() {
+function uc_wishlist_invoke_hook_add_to_cart() {
   $args = func_get_args();
   $hook = 'add_to_cart';
   $return = array();
