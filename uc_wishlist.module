@@ -838,3 +838,12 @@ function uc_wishlist_invoke_hook_add_to_cart() {
 
   return $return;
 }
+
+/**
+ * Implements hook_views_api()
+ */
+function uc_wishlist_views_api() {
+  return array(
+    'api' => 3,
+  );
+}
